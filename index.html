@@ -520,6 +520,17 @@ function minMaxRatio(data, numeratorField, denominatorField){
   }
   return min === Infinity ? { min: 0, max: 0 } : { min: min, max: max };
 }
+function localSelfRebateSummary(data, costField){
+  var eligible = data.filter(function(row){
+    return row.selfOpTag === '自运营'
+      && row.mediaIndustry === '本地一类'
+      && parseNum(row[costField]) > 0;
+  });
+  return {
+    average: avgField(eligible, 'rebateSum'),
+    range: minMaxField(eligible, 'rebateSum')
+  };
+}
 function materialRates(data){
   var materialCost = sumField(data, 'materialCost');
   return {
@@ -797,15 +808,11 @@ function renderOverviewInsights(d){
 function renderCustomerRebateCards(metrics, rows){
   var el = document.getElementById('customer-rebate-cards');
   if (!el) return;
-  var localSelfRows = rows.filter(function(row){
-    return row.selfOpTag === '自运营' && row.mediaIndustry === '本地一类';
-  });
-  var localSelfMetrics = calcMetrics(localSelfRows);
-  var clueRange = minMaxRatio(localSelfRows, 'clueIncentive', 'clueCost');
-  var transRange = minMaxRatio(localSelfRows, 'transIncentive', 'transCost');
+  var clueSummary = localSelfRebateSummary(rows, 'clueCost');
+  var transSummary = localSelfRebateSummary(rows, 'transCost');
   var html = '';
-  html += '<div class="insight-card"><div class="insight-label">本地一类自运营综合返点线索类</div><div class="insight-val">' + fmtPct(localSelfMetrics.clueCustomerRebate) + '</div><div class="insight-sub">最高 ' + fmtPct(clueRange.max) + ' | 最低 ' + fmtPct(clueRange.min) + '</div></div>';
-  html += '<div class="insight-card"><div class="insight-label">本地一类自运营综合返点交易类</div><div class="insight-val">' + fmtPct(localSelfMetrics.transCustomerRebate) + '</div><div class="insight-sub">最高 ' + fmtPct(transRange.max) + ' | 最低 ' + fmtPct(transRange.min) + '</div></div>';
+  html += '<div class="insight-card"><div class="insight-label">本地一类自运营综合返点线索类</div><div class="insight-val">' + fmtPct(clueSummary.average) + '</div><div class="insight-sub">最高 ' + fmtPct(clueSummary.range.max) + ' | 最低 ' + fmtPct(clueSummary.range.min) + '</div></div>';
+  html += '<div class="insight-card"><div class="insight-label">本地一类自运营综合返点交易类</div><div class="insight-val">' + fmtPct(transSummary.average) + '</div><div class="insight-sub">最高 ' + fmtPct(transSummary.range.max) + ' | 最低 ' + fmtPct(transSummary.range.min) + '</div></div>';
   el.innerHTML = html;
 }
 
@@ -821,12 +828,8 @@ function renderPortKpiCompare(portData){
     var clueRange = minMaxField(rows, 'clueRebate');
     var transRange = minMaxField(rows, 'transRebate');
     var materialRange = minMaxField(rows, 'qualityFirstRebate');
-    var localSelfRows = rows.filter(function(row){
-      return row.selfOpTag === '自运营' && row.mediaIndustry === '本地一类';
-    });
-    var localSelfMetrics = calcMetrics(localSelfRows);
-    var clueCustomerRange = minMaxRatio(localSelfRows, 'clueIncentive', 'clueCost');
-    var transCustomerRange = minMaxRatio(localSelfRows, 'transIncentive', 'transCost');
+    var clueCustomerSummary = localSelfRebateSummary(rows, 'clueCost');
+    var transCustomerSummary = localSelfRebateSummary(rows, 'transCost');
     html += '<section class="port-block">';
     html += '<div class="port-block-title">' + port + '端口<span>' + rows.length + ' 条记录 · 消耗 ¥' + fmtW(m.totalCost) + '</span></div>';
     html += '<div class="port-kpi-grid">';
@@ -838,8 +841,8 @@ function renderPortKpiCompare(portData){
     html += portKpiCard('交易类返点', fmtPct(m.transRebate), '最高 ' + fmtPct(transRange.max) + ' | 最低 ' + fmtPct(transRange.min), 'blue');
     html += portKpiCard('基础&amp;经营模块返点', fmtPct(m.baseRebate + m.operationRebate), '基础 ' + fmtPct(m.baseRebate) + ' | 经营 ' + fmtPct(m.operationRebate), 'red');
     html += portKpiCard('素材返点', fmtPct(m.materialRebate), '最高 ' + fmtPct(materialRange.max) + ' | 最低 ' + fmtPct(materialRange.min), 'red');
-    html += portKpiCard('本地一类自运营综合返点线索类', fmtPct(localSelfMetrics.clueCustomerRebate), '最高 ' + fmtPct(clueCustomerRange.max) + ' | 最低 ' + fmtPct(clueCustomerRange.min), 'blue');
-    html += portKpiCard('本地一类自运营综合返点交易类', fmtPct(localSelfMetrics.transCustomerRebate), '最高 ' + fmtPct(transCustomerRange.max) + ' | 最低 ' + fmtPct(transCustomerRange.min), 'blue');
+    html += portKpiCard('本地一类自运营综合返点线索类', fmtPct(clueCustomerSummary.average), '最高 ' + fmtPct(clueCustomerSummary.range.max) + ' | 最低 ' + fmtPct(clueCustomerSummary.range.min), 'blue');
+    html += portKpiCard('本地一类自运营综合返点交易类', fmtPct(transCustomerSummary.average), '最高 ' + fmtPct(transCustomerSummary.range.max) + ' | 最低 ' + fmtPct(transCustomerSummary.range.min), 'blue');
     html += '</div></section>';
   }
   el.innerHTML = html;
