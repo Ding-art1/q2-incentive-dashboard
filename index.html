@@ -536,7 +536,8 @@ function materialRates(data){
   return {
     materialCost: materialCost,
     qualityRate: materialCost ? sumField(data, 'qualityMaterialCost') / materialCost : 0,
-    firstRate: materialCost ? sumField(data, 'firstMaterialCost') / materialCost : 0
+    firstRate: materialCost ? sumField(data, 'firstMaterialCost') / materialCost : 0,
+    talentRate: materialCost ? sumField(data, 'talentMaterialCost') / materialCost : 0
   };
 }
 function calcMetrics(data){
@@ -550,7 +551,9 @@ function calcMetrics(data){
   var transIncentive = sumField(data, 'transIncentive');
   var clueCost = sumField(data, 'clueCost');
   var transCost = sumField(data, 'transCost');
-  var materialRebate = totalCost ? materialIncentive / totalCost : 0;
+  var aggregateMaterialRates = materialRates(data);
+  var materialRebate = (aggregateMaterialRates.firstRate + aggregateMaterialRates.qualityRate) * 0.04
+    + aggregateMaterialRates.talentRate * 0.02;
   var clueRebate = totalCost ? clueIncentive / totalCost : 0;
   var transRebate = totalCost ? transIncentive / totalCost : 0;
   var clueCustomerRebate = clueCost ? clueIncentive / clueCost : 0;
