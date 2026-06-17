@@ -563,7 +563,7 @@ function minMaxRatio(data, numeratorField, denominatorField){
 }
 function localSelfRebateSummary(data, costField){
   var eligible = data.filter(function(row){
-    return parseNum(row.selfOpShare) > 0
+    return parseNum(row.selfOpShare) >= 0.9999
       && row.mediaIndustry === '本地一类'
       && parseNum(row[costField]) > 0;
   });
