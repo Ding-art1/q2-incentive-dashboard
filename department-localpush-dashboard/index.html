@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>部门本地推数据多维看板</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>部门本地推数据多维看板</h1>
+        <p id="dataRange"></p>
+      </div>
+      <div class="timebox">
+        <div><span id="monthProgress">0%</span><small>月度进度</small></div>
+        <div><span id="quarterProgress">0%</span><small>季度进度</small></div>
+        <div><span id="monthCountdown">0天</span><small>本月倒计时</small></div>
+        <div><span id="quarterCountdown">0天</span><small>本季倒计时</small></div>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="看板板块">
+      <button class="tab active" data-tab="overview">仪表盘</button>
+      <button class="tab" data-tab="details">数据明细</button>
+      <button class="tab" data-tab="targets">目标管理</button>
+      <button class="tab" data-tab="display">数据展示</button>
+    </nav>
+
+    <main>
+      <section id="overview" class="panel active">
+        <section class="filters panelFilters" aria-label="仪表盘筛选条件">
+          <label>仪表盘周期
+            <select id="periodMode">
+              <option value="year">全年</option>
+              <option value="quarter">季度</option>
+              <option value="month">月度</option>
+              <option value="custom">具体时间</option>
+            </select>
+          </label>
+          <label id="yearFilterWrap">年份<select id="yearFilter"></select></label>
+          <label id="quarterFilterWrap">季度<select id="quarterQuick"></select></label>
+          <label id="monthFilterWrap">月份<select id="monthQuick"></select></label>
+          <label id="startDateWrap">开始日期<input id="startDate" type="date" /></label>
+          <label id="endDateWrap">结束日期<input id="endDate" type="date" /></label>
+          <select id="categoryFilter" multiple hidden></select>
+          <select id="bizFilter" multiple hidden></select>
+          <select id="teamFilter" multiple hidden></select>
+          <select id="salesFilter" multiple hidden></select>
+          <select id="projectFilter" multiple hidden></select>
+          <div class="filterActions">
+            <button id="resetFilters">重置</button>
+            <button id="applyFilters">确定</button>
+          </div>
+        </section>
+        <section class="sectionBlock">
+          <h2>总数据板块</h2>
+          <div class="metricGrid" id="totalMetrics"></div>
+        </section>
+        <section class="sectionBlock">
+          <h2>业绩通报板块</h2>
+          <div class="bulletinGrid" id="performanceBulletins"></div>
+        </section>
+        <section class="sectionBlock">
+          <h2>日耗板块</h2>
+          <div class="metricGrid" id="dailyMetrics"></div>
+          <div class="chartGrid">
+            <section class="chartBlock wide"><h2>筛选周期内日耗曲线</h2><canvas id="dailyTrend"></canvas></section>
+            <section class="chartBlock wide compactRankBlock"><h2>昨日各项目消耗降序</h2><div id="yesterdayProjectRank" class="rankList"></div></section>
+          </div>
+        </section>
+        <section class="sectionBlock">
+          <h2>周耗板块</h2>
+          <div class="metricGrid" id="weeklyMetrics"></div>
+          <div class="chartGrid weeklyGrid">
+            <section class="chartBlock compact"><h2>本地推当月周耗对比</h2><canvas id="weeklyLocalTrend"></canvas></section>
+            <section class="chartBlock compact"><h2>代充值当月周耗对比</h2><canvas id="weeklyRechargeTrend"></canvas></section>
+            <section class="chartBlock compact"><h2>代运营当月周耗对比</h2><canvas id="weeklyOperateTrend"></canvas></section>
+          </div>
+        </section>
+        <section class="sectionBlock">
+          <h2>代运营板块</h2>
+          <div class="metricGrid" id="operateMetrics"></div>
+          <div class="chartGrid">
+            <section class="chartBlock wide operateProjectBlock"><h2>代运营各项目日耗曲线</h2><div id="operateProjectDailyGrid" class="projectTrendGrid"></div></section>
+          </div>
+        </section>
+        <section class="sectionBlock">
+          <h2>代充值板块</h2>
+          <div class="metricGrid" id="rechargeMetrics"></div>
+          <div class="chartGrid">
+            <section class="chartBlock wide"><h2>销售一组/二组代充值日耗曲线</h2><canvas id="rechargeTeamDailyChart"></canvas></section>
+            <section class="chartBlock"><h2>各组消耗目标完成进度</h2><canvas id="rechargeGroupTargetChart"></canvas></section>
+            <section class="chartBlock"><h2>各人消耗目标完成进度</h2><canvas id="rechargePersonTargetChart"></canvas></section>
+            <section class="chartBlock wide"><h2>消耗目标完成率曲线</h2><canvas id="rechargeCompletionChart"></canvas></section>
+            <section class="chartBlock"><h2>新开完成情况</h2><canvas id="rechargeNewChart"></canvas></section>
+            <section class="chartBlock"><h2>本月新增商机明细</h2><div id="monthlyNewOpportunityList" class="miniTable"></div></section>
+          </div>
+        </section>
+        <section class="sectionBlock">
+          <h2>端口板块</h2>
+          <div class="chartGrid">
+            <section class="chartBlock compact"><h2>两个端口日耗趋势图</h2><canvas id="portDailyChart"></canvas></section>
+            <section class="chartBlock compact"><h2>筛选周期内端口消耗占比分布</h2><canvas id="portShareChart"></canvas></section>
+          </div>
+        </section>
+      </section>
+
+      <section id="details" class="panel">
+        <div class="subtabs">
+          <button class="subtab active" data-table="monthly">月度汇总明细</button>
+          <button class="subtab" data-table="daily">每日数据明细</button>
+        </div>
+        <div class="tableTools">
+          <input id="tableSearch" type="search" placeholder="搜索项目、商务、商机、账户、团队" />
+          <div class="tableActions">
+            <span id="tableInfo"></span>
+            <button id="saveStatusChanges">保存本次修改</button>
+            <button id="exportCsv">导出当前明细</button>
+          </div>
+        </div>
+        <div class="tableWrap">
+          <table id="dataTable"></table>
+        </div>
+        <div class="pager">
+          <button id="prevPage">上一页</button>
+          <span id="pageInfo"></span>
+          <button id="nextPage">下一页</button>
+        </div>
+      </section>
+
+      <section id="targets" class="panel">
+        <div class="targetEditor businessTargetEditor">
+          <label>月份<select id="businessTargetMonth"></select></label>
+          <label>代充值目标（万）<input id="rechargeBizTarget" type="number" min="0" step="1" placeholder="例如 2000" /></label>
+          <label>代运营目标（万）<input id="operateBizTarget" type="number" min="0" step="1" placeholder="例如 500" /></label>
+          <button id="saveBusinessTarget">保存业务目标</button>
+        </div>
+        <div class="targetEditor">
+          <label>月份<select id="targetMonth"></select></label>
+          <label>团队<select id="targetTeam"></select></label>
+          <label>商务<select id="targetSales"></select></label>
+          <label>消耗目标（万）<input id="spendTarget" type="number" min="0" step="1" placeholder="例如 300" /></label>
+          <label>新开目标<input id="newTarget" type="number" min="0" step="1" /></label>
+          <button id="saveTarget">保存目标</button>
+        </div>
+        <div class="chartGrid">
+          <section class="chartBlock wide"><h2>消耗目标达成</h2><canvas id="targetSpendChart"></canvas></section>
+          <section class="chartBlock wide"><h2>新开目标达成</h2><canvas id="targetNewChart"></canvas></section>
+        </div>
+        <div class="tableWrap">
+          <table id="targetTable"></table>
+        </div>
+      </section>
+
+      <section id="display" class="panel">
+        <div class="displayBoard">
+          <section class="displayCard progressCard red">
+            <h2 id="displayMonthTitle">M6时间进度</h2>
+            <strong id="displayMonthProgress">0%</strong>
+            <div class="progressTrack"><span id="displayMonthProgressBar"></span></div>
+            <p id="displayMonthProgressText">当前 0 天｜目标 0 天</p>
+          </section>
+          <section class="displayCard countdownCard">
+            <h2 id="displayCountdownTitle">距离M6结束还有：</h2>
+            <div class="countdownGrid">
+              <div><strong id="displayDays">00</strong><span>天</span></div>
+              <div><strong id="displayHours">00</strong><span>时</span></div>
+              <div><strong id="displayMinutes">00</strong><span>分</span></div>
+              <div><strong id="displaySeconds">00</strong><span>秒</span></div>
+            </div>
+          </section>
+          <section class="displayCard trendCard">
+            <h2>全年本地推日耗趋势</h2>
+            <canvas id="bigScreenTrend"></canvas>
+          </section>
+          <section class="displayCard teamCard team-one">
+            <h2 id="displayTeamOneTitle">销售一组消耗目标达成</h2>
+            <strong id="displayTeamOnePct">0%</strong>
+            <div class="progressTrack"><span id="displayTeamOneBar"></span></div>
+            <p id="displayTeamOneText">当前 0 万｜目标 0 万</p>
+          </section>
+          <section class="displayCard teamCard team-two">
+            <h2 id="displayTeamTwoTitle">销售二组消耗目标达成</h2>
+            <strong id="displayTeamTwoPct">0%</strong>
+            <div class="progressTrack"><span id="displayTeamTwoBar"></span></div>
+            <p id="displayTeamTwoText">当前 0 万｜目标 0 万</p>
+          </section>
+          <section class="displayCard rankCard purple">
+            <h2 id="displayCompletionTitle">M6消耗完成率排行</h2>
+            <canvas id="bigScreenCompletionRank"></canvas>
+          </section>
+          <section class="displayCard rankCard blue">
+            <h2 id="displaySpendTitle">M6消耗排行</h2>
+            <canvas id="bigScreenSpendRank"></canvas>
+          </section>
+          <section class="displayCard rankCard orange">
+            <h2>昨日消耗排行</h2>
+            <canvas id="bigScreenYesterdayRank"></canvas>
+          </section>
+        </div>
+      </section>
+    </main>
+
+    <script src="./data.js?v=13"></script>
+    <script src="./app.js?v=13"></script>
+  </body>
+</html>
