@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>第二十一事业部业绩看板</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  </head>
+  <body class="auth-locked">
+    <section id="loginScreen" class="loginScreen">
+      <form id="loginForm" class="loginCard">
+        <h1>业绩看板登录</h1>
+        <p>请输入账号和密码后查看对应权限数据</p>
+        <label>账号<input id="loginAccount" type="text" autocomplete="username" placeholder="admin 或姓名" /></label>
+        <label>密码<input id="loginPassword" type="password" autocomplete="current-password" placeholder="请输入密码" /></label>
+        <button type="submit">登录</button>
+        <em id="loginError"></em>
+      </form>
+    </section>
+    <aside class="sidebar">
+      <h1>业绩看板</h1>
+      <button class="nav active" data-panel="dashboard">仪表盘</button>
+      <button class="nav" data-panel="daily">日报</button>
+      <button class="nav" data-panel="details">消耗明细</button>
+      <button class="nav adminOnly" data-panel="targets">目标管理</button>
+      <a class="nav link" href="https://ding-art1.github.io/q2-incentive-dashboard/" target="_blank" rel="noreferrer">毛利板块</a>
+      <button class="nav" data-panel="customers">客户构成</button>
+      <button class="nav" data-panel="changes">新增&流失</button>
+      <button class="nav adminOnly" data-panel="dataManage">数据管理</button>
+    </aside>
+    <main>
+      <header class="topbar">
+        <div>
+          <h2>第二十一事业部业绩看板</h2>
+          <p id="dataMeta"></p>
+        </div>
+        <div class="userBox">
+          <span id="currentUser"></span>
+          <button id="logoutBtn" type="button">退出</button>
+        </div>
+        <section class="filters">
+          <label>开始日期<input id="startDate" type="date" /></label>
+          <label>结束日期<input id="endDate" type="date" /></label>
+          <label>合作模式<select id="bizFilter"><option value="">全部</option></select></label>
+          <label>客户类型<select id="typeFilter"><option value="">全部</option><option>直签</option><option>渠道</option></select></label>
+          <button id="resetFilters">重置</button>
+          <button id="applyFilters">确定</button>
+        </section>
+      </header>
+
+      <section id="dashboard" class="panel active">
+        <section class="timebox">
+          <article><strong id="monthProgress">0%</strong><span>月度进度</span></article>
+          <article><strong id="quarterProgress">0%</strong><span>季度进度</span></article>
+          <article><strong id="monthCountdown">0天</strong><span>本月倒计时</span></article>
+          <article><strong id="quarterCountdown">0天</strong><span>本季倒计时</span></article>
+        </section>
+        <section class="block"><h3>总数据板块</h3><div class="metricGrid" id="dashboardMetrics"></div></section>
+        <section class="block">
+          <h3>日耗板块</h3>
+          <div class="metricGrid" id="dailyMetrics"></div>
+          <div class="grid two">
+            <article class="card wide"><h4>筛选周期内日耗曲线</h4><canvas id="dailyTrend"></canvas></article>
+            <article class="card"><h4>昨日直签客户消耗降序</h4><div id="yDirectRank" class="rankList"></div></article>
+            <article class="card"><h4>昨日渠道消耗降序</h4><div id="yChannelRank" class="rankList"></div></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>周耗板块</h3>
+          <div class="metricGrid" id="weeklyMetrics"></div>
+          <div class="grid three">
+            <article class="card"><h4>本地推周与周消耗对比</h4><canvas id="localWeekChart"></canvas></article>
+            <article class="card"><h4>代充值周与周消耗对比</h4><canvas id="rechargeWeekChart"></canvas></article>
+            <article class="card"><h4>代运营周与周消耗对比</h4><canvas id="operateWeekChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>代运营板块</h3>
+          <div class="metricGrid" id="operateMetrics"></div>
+          <div class="grid two">
+            <article class="card"><h4>代运营目标达成进度</h4><canvas id="operateTargetChart"></canvas></article>
+            <article class="card"><h4>代运营各项目日耗曲线</h4><canvas id="operateProjectDailyChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>代充值板块</h3>
+          <div class="metricGrid" id="rechargeMetrics"></div>
+          <div class="grid three">
+            <article class="card"><h4>销售组代充值日耗曲线</h4><canvas id="rechargeTeamDailyChart"></canvas></article>
+            <article class="card"><h4>销售组本周代充值消耗</h4><canvas id="rechargeTeamWeekChart"></canvas></article>
+            <article class="card"><h4>各组消耗/新开完成进度</h4><canvas id="dashboardTeamTargetChart"></canvas></article>
+            <article class="card wide"><h4>各人消耗/新开完成进度</h4><canvas id="dashboardPersonTargetChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>端口板块</h3>
+          <div class="grid two">
+            <article class="card"><h4>两个端口日耗趋势图</h4><canvas id="portDailyChart"></canvas></article>
+            <article class="card"><h4>筛选周期内端口消耗占比分布</h4><canvas id="portShareChart"></canvas></article>
+          </div>
+        </section>
+      </section>
+
+      <section id="daily" class="panel">
+        <section class="reportHero">
+          <h3 id="dailyTitle">昨日数据通报</h3>
+          <p id="dailySubtitle"></p>
+        </section>
+        <div class="reportGrid">
+          <article class="reportCard local"><h3>昨日本地推数据通报</h3><div id="localReport"></div></article>
+          <article class="reportCard recharge"><h3>昨日代充值数据通报</h3><div id="rechargeReport"></div></article>
+          <article class="reportCard operate"><h3>昨日代运营数据通报</h3><div id="operateReport"></div></article>
+        </div>
+      </section>
+
+      <section id="details" class="panel">
+        <section class="tableTools">
+          <input id="tableSearch" type="search" placeholder="搜索商机、主体、商务、端口、行业" />
+          <button id="exportCsv">导出当前明细</button>
+          <span id="tableInfo"></span>
+        </section>
+        <div class="tableWrap"><table id="detailTable"></table></div>
+        <div class="pager"><button id="prevPage">上一页</button><span id="pageInfo"></span><button id="nextPage">下一页</button></div>
+      </section>
+
+      <section id="targets" class="panel adminOnly">
+        <section class="targetEditor">
+          <label>月份<select id="targetMonth"></select></label>
+          <label>目标层级<select id="targetLevel"><option value="business">业务</option><option value="team">销售组</option><option value="person">商务个人</option></select></label>
+          <label>目标对象<select id="targetName"></select></label>
+          <label>月度消耗目标（万）<input id="targetSpend" type="number" min="0" step="1" placeholder="例如 4300" /></label>
+          <label>月度新开目标<input id="targetNew" type="number" min="0" step="1" placeholder="例如 10" /></label>
+          <button id="saveTarget">保存目标</button>
+        </section>
+        <section class="block">
+          <h3>目标管理总览</h3>
+          <div class="grid three">
+            <article class="card"><h4>业务目标达成</h4><canvas id="targetBusinessChart"></canvas></article>
+            <article class="card"><h4>销售组目标达成</h4><canvas id="targetTeamChart"></canvas></article>
+            <article class="card"><h4>商务个人目标达成</h4><canvas id="targetPersonChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block"><h3>目标明细</h3><div class="tableWrap compact"><table id="targetTable"></table></div></section>
+      </section>
+
+      <section id="customers" class="panel">
+        <section class="block"><h3>客户构成总览</h3><div class="metricGrid" id="customerMetrics"></div></section>
+        <section class="block">
+          <h3>客户构成分析</h3>
+          <div class="grid two">
+            <article class="card"><h4>月消耗TOP10直签项目</h4><div id="directTop" class="rankList"></div></article>
+            <article class="card"><h4>月消耗TOP10渠道项目</h4><div id="channelTop" class="rankList"></div></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>商务客户构成</h3>
+          <div class="grid two">
+            <article class="card"><h4>商务直签/渠道消耗构成</h4><canvas id="salesCustomerSpendChart"></canvas></article>
+            <article class="card"><h4>商务直签/渠道个数构成</h4><canvas id="salesCustomerCountChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>客户/渠道主体明细</h3>
+          <div class="lookupTools">
+            <input id="customerLookupInput" type="text" placeholder="输入主体或商机名称查询" />
+            <button id="customerLookupBtn">查询</button>
+            <button id="customerLookupClear">清空</button>
+          </div>
+          <div class="tableWrap compact lookupResult"><table id="customerLookupTable"></table></div>
+          <div class="tableWrap compact"><table id="customerTable"></table></div>
+        </section>
+      </section>
+
+      <section id="changes" class="panel">
+        <section class="block"><h3>新增识别 <small>直签客户新增=新开客户；渠道新增=代充值新渠道或历史渠道新增主体</small><button id="saveNewLabelsInChanges" class="inlineBtn">保存本次选择</button></h3><div class="tableWrap compact"><table id="newTable"></table></div></section>
+        <section class="block">
+          <h3>流失识别 <small>规则：上个月消耗大于0，本月消耗=0且本月已超过10天；包含直签客户、渠道、渠道主体</small></h3>
+          <div class="lookupTools">
+            <select id="lostTypeFilter">
+              <option value="">全部类型</option>
+              <option>直签客户流失</option>
+              <option>渠道流失</option>
+              <option>渠道主体流失</option>
+            </select>
+            <input id="lostSearch" type="text" placeholder="搜索客户/渠道或主体" />
+            <button id="lostClear">清空</button>
+          </div>
+          <div id="lostSummary" class="summaryLine"></div>
+          <div class="tableWrap compact"><table id="lostTable"></table></div>
+        </section>
+      </section>
+
+      <section id="dataManage" class="panel adminOnly">
+        <section class="uploadBox">
+          <div>
+            <h3>数据上传与历史下载</h3>
+            <p>上传当日 Excel 后，会识别历史无消耗商机；可手工标记为存量商机、代充值新客户、代运营新客户或代充值新渠道。上传记录保存在当前浏览器。</p>
+          </div>
+          <input id="uploadFile" type="file" accept=".xlsx,.xls,.csv" />
+          <button id="saveNewLabels">保存本次标记</button>
+        </section>
+        <section class="block">
+          <h3>历史数据下载</h3>
+          <div class="dataActions">
+            <button id="downloadBaseHistory">下载原始历史数据</button>
+            <button id="downloadUploadedHistory">下载上传历史数据</button>
+          </div>
+          <div class="tableWrap compact"><table id="uploadHistoryTable"></table></div>
+        </section>
+      </section>
+    </main>
+    <script src="./data.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
