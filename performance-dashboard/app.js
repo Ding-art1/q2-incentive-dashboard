@@ -972,20 +972,32 @@ function renderCustomers() {
     metric("直签主体数", uniqueCount(direct, r => r[cols["广告主主体"]]), `${deltaText(uniqueCount(direct, r => r[cols["广告主主体"]]), uniqueCount(prevDirect, r => r[cols["广告主主体"]]))}｜消耗环比 ${deltaText(sum(direct), sum(prevDirect), "w")}`, "biz-operate"),
     metric("渠道主体数", uniqueCount(channel, r => r[cols["广告主主体"]]), `${deltaText(uniqueCount(channel, r => r[cols["广告主主体"]]), uniqueCount(prevChannel, r => r[cols["广告主主体"]]))}｜消耗环比 ${deltaText(sum(channel), sum(prevChannel), "w")}`, "biz-new"),
   ].join("");
-  renderRank("directTop", topProjects(direct, prevDirect, year));
-  renderRank("channelTop", topProjects(channel, prevChannel, year));
+  const directAll = topProjects(direct, prevDirect, year, Number.MAX_SAFE_INTEGER);
+  const channelAll = topProjects(channel, prevChannel, year, Number.MAX_SAFE_INTEGER);
+  const directTop = directAll.slice(0, 10);
+  const channelTop = channelAll.slice(0, 10);
+  const currentMonthLabel = monthM(curMonth);
+  renderRank("directTop", directTop);
+  renderRank("channelTop", channelTop);
+  renderRank("directFirstMonthTop", directAll.filter(x => x.firstMonth === currentMonthLabel).slice(0, 10), "暂无本月首消直签项目");
+  renderRank("channelFirstMonthTop", channelAll.filter(x => x.firstMonth === currentMonthLabel).slice(0, 10), "暂无本月首消渠道项目");
   renderSalesCustomerMix(currentRows);
   renderCustomerTable(currentRows, selfMap);
   renderCustomerLookup();
 }
-function topProjects(list, prevList, year) {
+function topProjects(list, prevList, year, limit = 10) {
   const prev = new Map(group(prevList, r => r[cols["项目"]] || "未填写").map(x => [x.label, x.value]));
   return group(list, r => r[cols["项目"]] || "未填写")
     .sort((a, b) => b.value - a.value)
-    .slice(0, 10)
+    .slice(0, limit)
     .map(x => ({ ...x, grade: grade(x.value), prev: prev.get(x.label) || 0, firstMonth: firstSpendMonthForProject(x.label, year) }));
 }
-function renderRank(id, items) {
+function renderRank(id, items, emptyText = "暂无数据") {
+  if (!$(id)) return;
+  if (!items.length) {
+    $(id).innerHTML = `<div class="empty">${esc(emptyText)}</div>`;
+    return;
+  }
   const max = Math.max(...items.map(x => x.value), 1);
   $(id).innerHTML = items.map(x => {
     const delta = x.value - x.prev;
