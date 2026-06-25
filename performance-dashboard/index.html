@@ -233,10 +233,18 @@
         </section>
         <section class="block">
           <h3>客户新增与流失 <small>新增消耗为本月消耗，流失消耗为上月消耗</small></h3>
-          <div class="grid three customerChangeGrid">
-            <article class="card"><h4>直签 / 渠道新增流失总览</h4><div class="tableWrap compact"><table id="customerChangeSummaryTable"></table></div></article>
-            <article class="card"><h4>各商务组新增流失</h4><div class="tableWrap compact"><table id="teamCustomerChangeTable"></table></div></article>
-            <article class="card"><h4>各商务新增流失</h4><div class="tableWrap compact"><table id="salesCustomerChangeTable"></table></div></article>
+          <div id="customerChangeMetrics" class="changeMetricGrid"></div>
+          <div class="grid two adminChangeView">
+            <article class="card"><h4>商务组新增 / 流失横向对比</h4><canvas id="teamCustomerChangeChart"></canvas></article>
+            <article class="card"><h4>商务新增 / 流失横向对比</h4><canvas id="salesCustomerChangeChart"></canvas></article>
+          </div>
+          <div class="grid two userChangeView">
+            <article class="card"><h4>我的新增明细</h4><div id="myNewChangeList" class="changeList"></div></article>
+            <article class="card"><h4>我的流失明细</h4><div id="myLostChangeList" class="changeList"></div></article>
+          </div>
+          <div class="grid two">
+            <article class="card"><h4>新增消耗TOP</h4><div id="newCustomerChangeTop" class="changeList compact"></div></article>
+            <article class="card"><h4>流失消耗TOP</h4><div id="lostCustomerChangeTop" class="changeList compact"></div></article>
           </div>
         </section>
         <section class="block">

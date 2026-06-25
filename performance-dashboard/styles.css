@@ -45,6 +45,11 @@ body.person-user.my-dashboard-active .rechargeDashboardBlock {
 body.person-user .targetOverviewBlock {
   display: none !important;
 }
+body.person-user .adminChangeView,
+body.admin-user .userChangeView,
+body.team-user .userChangeView {
+  display: none !important;
+}
 .loginScreen {
   min-height: 100vh;
   display: grid;
@@ -724,6 +729,122 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   color: var(--green);
   background: #edfdf5;
 }
+.changeMetricGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.changeMetric {
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--blue);
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: var(--shadow);
+}
+.changeMetric.green { border-left-color: var(--green); }
+.changeMetric.red { border-left-color: var(--red); }
+.changeMetric.amber { border-left-color: var(--amber); }
+.changeMetric strong {
+  display: block;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.changeMetric span {
+  display: block;
+  margin-top: 8px;
+  color: var(--muted);
+  font-weight: 800;
+}
+.changeMetric em {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+}
+.changeList {
+  display: grid;
+  gap: 9px;
+  max-height: 380px;
+  overflow: auto;
+}
+.changeList.compact {
+  max-height: 320px;
+}
+.changeItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, 190px);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid #edf2f8;
+  border-radius: 10px;
+  background: #fbfdff;
+}
+.changeItem.lost {
+  background: #fffafa;
+}
+.changeItem p {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+}
+.changeItem b {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.changeItem em,
+.changeItem small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12px;
+  font-weight: 700;
+}
+.tag {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+.tag.direct { color: var(--blue); background: #edf4ff; }
+.tag.channel { color: var(--green); background: #edfdf5; }
+.tag.new { color: var(--green); background: #e9fbf2; }
+.tag.lost { color: var(--red); background: #fff0f0; }
+.changeValue {
+  display: grid;
+  grid-template-columns: minmax(70px, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.changeValue i {
+  height: 8px;
+  border-radius: 999px;
+  background: #edf2f8;
+  overflow: hidden;
+}
+.changeValue u {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #4aa3ff);
+}
+.changeItem.lost .changeValue u {
+  background: linear-gradient(90deg, var(--red), #fb7185);
+}
+.changeValue strong {
+  font-size: 13px;
+  white-space: nowrap;
+}
 .grade { display: inline-block; min-width: 28px; text-align: center; padding: 2px 6px; border-radius: 999px; color: #fff; background: var(--blue); font-weight: 700; }
 .grade.SS { background: var(--red); }
 .grade.S { background: var(--amber); }
@@ -735,7 +856,7 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   .sidebar { position: static; height: auto; display: flex; gap: 8px; overflow-x: auto; }
   .sidebar h1 { display: none; }
   .nav { width: auto; white-space: nowrap; }
-  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr 1fr; }
+  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .lookupTools, .changeMetricGrid { grid-template-columns: 1fr 1fr; }
   .publicTop, .publicGoalGrid, .publicRankGrid { grid-template-columns: 1fr; }
   .miniChartGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 }

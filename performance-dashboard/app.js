@@ -1295,16 +1295,20 @@ function customerChangeRows(curMonth, endDate, prevMonth) {
   const labels = newLabels();
   const currentRows = customerFilterRowsForMonth(curMonth, endDate);
   const currentByOpp = new Map(group(currentRows, r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
+  const currentBySubject = new Map(group(currentRows, r => `${r[cols["商机名称"]]}|${r[cols["广告主主体"]]}`).map(x => [x.label, x.value]));
   const newRows = baseNewEntriesForMonth(curMonth, endDate)
     .map(normalizeNewEntry)
-    .filter(entry => entry.opportunity && !`${entry.key || ""}`.startsWith("channelSubject|"))
+    .filter(entry => entry.opportunity)
     .map(entry => ({
       change: "新增",
       type: newCustomerType(entry, labels),
+      kind: entry.kind || "新增",
       opportunity: entry.opportunity,
+      subject: entry.subject || "",
+      project: entry.project || "",
       sales: entry.sales || "",
       team: salesTeams[entry.sales] || "未分组",
-      value: currentByOpp.get(entry.opportunity) || 0
+      value: `${entry.key || ""}`.startsWith("channelSubject|") ? (currentBySubject.get(`${entry.opportunity}|${entry.subject}`) || 0) : (currentByOpp.get(entry.opportunity) || 0)
     }))
     .filter(x => x.type);
 
@@ -1314,6 +1318,7 @@ function customerChangeRows(curMonth, endDate, prevMonth) {
   const prev = rows.filter(r => r[cols.monthKey] === prevMonth);
   const curDirect = new Map(group(cur.filter(isDirectRow), r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
   const curChannel = new Map(group(cur.filter(isChannelRow), r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
+  const sampleRow = (list, opportunity, sales) => list.find(r => r[cols["商机名称"]] === opportunity && (!sales || r[cols["商务"]] === sales)) || [];
   const lostRowsFor = (list, type, currentMap) => group(list, r => `${r[cols["商机名称"]]}|${r[cols["商务"]]}`)
     .filter(x => {
       const [opportunity] = x.label.split("|");
@@ -1321,7 +1326,8 @@ function customerChangeRows(curMonth, endDate, prevMonth) {
     })
     .map(x => {
       const [opportunity, sales] = x.label.split("|");
-      return { change: "流失", type, opportunity, sales, team: salesTeams[sales] || "未分组", value: x.value };
+      const sample = sampleRow(list, opportunity, sales);
+      return { change: "流失", type, kind: `${type}流失`, opportunity, subject: "", project: sample[cols["项目"]] || "", sales, team: salesTeams[sales] || "未分组", value: x.value };
     });
   const lostRows = elapsedDays > 10 ? [
     ...lostRowsFor(prev.filter(isDirectRow), "直签", curDirect),
@@ -1354,22 +1360,68 @@ function aggregateCustomerChanges(list, keyFn) {
   }
   return [...buckets.values()];
 }
-function renderCustomerChangeTable(id, rows, nameLabel) {
+function changeTotal(row) {
+  return row.directNewSpend + row.channelNewSpend + row.directLostSpend + row.channelLostSpend;
+}
+function renderCustomerChangeMetrics(rows) {
+  if (!$("customerChangeMetrics")) return;
+  const total = rows.reduce((acc, x) => {
+    acc.directNewCount += x.directNewCount; acc.directNewSpend += x.directNewSpend;
+    acc.channelNewCount += x.channelNewCount; acc.channelNewSpend += x.channelNewSpend;
+    acc.directLostCount += x.directLostCount; acc.directLostSpend += x.directLostSpend;
+    acc.channelLostCount += x.channelLostCount; acc.channelLostSpend += x.channelLostSpend;
+    return acc;
+  }, { directNewCount: 0, directNewSpend: 0, channelNewCount: 0, channelNewSpend: 0, directLostCount: 0, directLostSpend: 0, channelLostCount: 0, channelLostSpend: 0 });
+  const cards = [
+    ["直签新增", total.directNewCount, total.directNewSpend, "blue", "本月新增消耗"],
+    ["渠道新增", total.channelNewCount, total.channelNewSpend, "green", "本月新增消耗"],
+    ["直签流失", total.directLostCount, total.directLostSpend, "red", "上月流失消耗"],
+    ["渠道流失", total.channelLostCount, total.channelLostSpend, "amber", "上月流失消耗"]
+  ];
+  $("customerChangeMetrics").innerHTML = cards.map(([name, count, spend, cls, sub]) => `<article class="changeMetric ${cls}">
+    <strong>${fmtMoney(count)}</strong>
+    <span>${esc(name)}</span>
+    <em>${esc(sub)} ${fmtWan(spend)}w</em>
+  </article>`).join("");
+}
+function renderCustomerChangeChart(id, rows) {
+  const data = rows.filter(x => changeTotal(x) > 0).sort((a, b) => changeTotal(b) - changeTotal(a)).slice(0, 10);
+  chart(id, "bar", data.map(x => x.key), [
+    { label: "直签新增", data: data.map(x => x.directNewSpend), backgroundColor: palette.blue },
+    { label: "渠道新增", data: data.map(x => x.channelNewSpend), backgroundColor: palette.green },
+    { label: "直签流失", data: data.map(x => x.directLostSpend), backgroundColor: palette.red },
+    { label: "渠道流失", data: data.map(x => x.channelLostSpend), backgroundColor: palette.amber }
+  ], { indexAxis: "y" });
+}
+function renderCustomerChangeList(id, rows, emptyText) {
   if (!$(id)) return;
-  const body = rows.map(x => `<tr>
-    <td>${esc(x.key)}</td>
-    <td class="num">${fmtMoney(x.directNewCount)}</td><td class="num">${fmtWan(x.directNewSpend)}w</td>
-    <td class="num">${fmtMoney(x.channelNewCount)}</td><td class="num">${fmtWan(x.channelNewSpend)}w</td>
-    <td class="num">${fmtMoney(x.directLostCount)}</td><td class="num">${fmtWan(x.directLostSpend)}w</td>
-    <td class="num">${fmtMoney(x.channelLostCount)}</td><td class="num">${fmtWan(x.channelLostSpend)}w</td>
-  </tr>`).join("");
-  $(id).innerHTML = `<thead><tr><th>${esc(nameLabel)}</th><th class="num">直签新增</th><th class="num">新增消耗</th><th class="num">渠道新增</th><th class="num">新增消耗</th><th class="num">直签流失</th><th class="num">上月消耗</th><th class="num">渠道流失</th><th class="num">上月消耗</th></tr></thead><tbody>${body || `<tr><td colspan="9" class="empty">暂无新增或流失数据</td></tr>`}</tbody>`;
+  const max = Math.max(1, ...rows.map(x => x.value));
+  $(id).innerHTML = rows.map(x => {
+    const typeCls = x.type === "渠道" ? "channel" : "direct";
+    const changeCls = x.change === "新增" ? "new" : "lost";
+    const subject = x.subject ? `<small>主体：${esc(x.subject)}</small>` : "";
+    return `<div class="changeItem ${changeCls}">
+      <div>
+        <p><span class="tag ${typeCls}">${esc(x.type)}</span><span class="tag ${changeCls}">${esc(x.change)}</span><b>${esc(x.opportunity)}</b></p>
+        <em>${esc(x.project || "未填写项目")}｜${esc(x.sales || "未填写商务")}｜${esc(x.kind || x.change)}</em>
+        ${subject}
+      </div>
+      <div class="changeValue"><i><u style="width:${Math.max(3, x.value / max * 100)}%"></u></i><strong>${fmtWan(x.value)}w</strong></div>
+    </div>`;
+  }).join("") || `<div class="empty">${esc(emptyText)}</div>`;
 }
 function renderCustomerChangeStats(curMonth, endDate, prevMonth) {
   const changes = customerChangeRows(curMonth, endDate, prevMonth);
-  renderCustomerChangeTable("customerChangeSummaryTable", aggregateCustomerChanges(changes, x => x.type), "类型");
-  renderCustomerChangeTable("teamCustomerChangeTable", aggregateCustomerChanges(changes, x => x.team).sort((a, b) => (b.directNewSpend + b.channelNewSpend + b.directLostSpend + b.channelLostSpend) - (a.directNewSpend + a.channelNewSpend + a.directLostSpend + a.channelLostSpend)), "商务组");
-  renderCustomerChangeTable("salesCustomerChangeTable", aggregateCustomerChanges(changes, x => x.sales).sort((a, b) => (b.directNewSpend + b.channelNewSpend + b.directLostSpend + b.channelLostSpend) - (a.directNewSpend + a.channelNewSpend + a.directLostSpend + a.channelLostSpend)), "商务");
+  const summary = aggregateCustomerChanges(changes, x => x.type);
+  renderCustomerChangeMetrics(summary);
+  renderCustomerChangeChart("teamCustomerChangeChart", aggregateCustomerChanges(changes, x => x.team));
+  renderCustomerChangeChart("salesCustomerChangeChart", aggregateCustomerChanges(changes, x => x.sales));
+  const sortedNew = changes.filter(x => x.change === "新增").sort((a, b) => b.value - a.value);
+  const sortedLost = changes.filter(x => x.change === "流失").sort((a, b) => b.value - a.value);
+  renderCustomerChangeList("myNewChangeList", sortedNew, "当前权限下暂无新增客户、渠道或主体");
+  renderCustomerChangeList("myLostChangeList", sortedLost, "当前权限下暂无流失客户、渠道或主体");
+  renderCustomerChangeList("newCustomerChangeTop", sortedNew.slice(0, 8), "暂无新增数据");
+  renderCustomerChangeList("lostCustomerChangeTop", sortedLost.slice(0, 8), "暂无流失数据");
 }
 function renderCustomerTable(list, selfMap) {
   const by = group(list, r => `${r[cols["客户类型"]]}|${r[cols["商机名称"]]}|${r[cols["项目"]]}`);
