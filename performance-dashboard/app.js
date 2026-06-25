@@ -982,6 +982,7 @@ function renderCustomers() {
   renderRank("directFirstMonthTop", directAll.filter(x => x.firstMonth === currentMonthLabel).slice(0, 10), "暂无本月首消直签项目");
   renderRank("channelFirstMonthTop", channelAll.filter(x => x.firstMonth === currentMonthLabel).slice(0, 10), "暂无本月首消渠道项目");
   renderSalesCustomerMix(currentRows);
+  renderCustomerChangeStats(curMonth, end, prevMonth);
   renderCustomerTable(currentRows, selfMap);
   renderCustomerLookup();
 }
@@ -1025,6 +1026,93 @@ function renderSalesCustomerMix(list) {
     { label: "直签个数", data: sales.map(x => x.directCount), backgroundColor: palette.blue },
     { label: "渠道个数", data: sales.map(x => x.channelCount), backgroundColor: palette.green }
   ], { countAxis: true, scales: { x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } }, y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0 } } } });
+}
+function newCustomerType(entry, labels = newLabels()) {
+  const label = effectiveNewLabel(entry, labels);
+  if (label === "存量商机" || label === "历史渠道新增主体") return "";
+  if (label === "代充值新渠道") return "渠道";
+  if (label === "代充值新客户" || label === "代运营新客户") return "直签";
+  return entry.customerType === "渠道" ? "渠道" : entry.customerType === "直签" ? "直签" : "";
+}
+function customerChangeRows(curMonth, endDate, prevMonth) {
+  const labels = newLabels();
+  const currentRows = customerFilterRowsForMonth(curMonth, endDate);
+  const currentByOpp = new Map(group(currentRows, r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
+  const newRows = baseNewEntriesForMonth(curMonth, endDate)
+    .map(normalizeNewEntry)
+    .filter(entry => entry.opportunity && !`${entry.key || ""}`.startsWith("channelSubject|"))
+    .map(entry => ({
+      change: "新增",
+      type: newCustomerType(entry, labels),
+      opportunity: entry.opportunity,
+      sales: entry.sales || "",
+      team: salesTeams[entry.sales] || "未分组",
+      value: currentByOpp.get(entry.opportunity) || 0
+    }))
+    .filter(x => x.type);
+
+  const monthStart = `${curMonth}-01`;
+  const elapsedDays = dateObj(endDate).getDate();
+  const cur = rows.filter(r => r[cols.monthKey] === curMonth && r[cols.date] >= monthStart && r[cols.date] <= endDate);
+  const prev = rows.filter(r => r[cols.monthKey] === prevMonth);
+  const curDirect = new Map(group(cur.filter(isDirectRow), r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
+  const curChannel = new Map(group(cur.filter(isChannelRow), r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
+  const lostRowsFor = (list, type, currentMap) => group(list, r => `${r[cols["商机名称"]]}|${r[cols["商务"]]}`)
+    .filter(x => {
+      const [opportunity] = x.label.split("|");
+      return x.value > 0 && (currentMap.get(opportunity) || 0) === 0;
+    })
+    .map(x => {
+      const [opportunity, sales] = x.label.split("|");
+      return { change: "流失", type, opportunity, sales, team: salesTeams[sales] || "未分组", value: x.value };
+    });
+  const lostRows = elapsedDays > 10 ? [
+    ...lostRowsFor(prev.filter(isDirectRow), "直签", curDirect),
+    ...lostRowsFor(prev.filter(isChannelRow), "渠道", curChannel)
+  ] : [];
+  return [...newRows, ...lostRows];
+}
+function aggregateCustomerChanges(list, keyFn) {
+  const buckets = new Map();
+  for (const row of list) {
+    const key = keyFn(row) || "未填写";
+    if (!buckets.has(key)) {
+      buckets.set(key, {
+        key,
+        directNewCount: 0,
+        directNewSpend: 0,
+        channelNewCount: 0,
+        channelNewSpend: 0,
+        directLostCount: 0,
+        directLostSpend: 0,
+        channelLostCount: 0,
+        channelLostSpend: 0
+      });
+    }
+    const item = buckets.get(key);
+    const prefix = row.type === "渠道" ? "channel" : "direct";
+    const middle = row.change === "新增" ? "New" : "Lost";
+    item[`${prefix}${middle}Count`] += 1;
+    item[`${prefix}${middle}Spend`] += row.value;
+  }
+  return [...buckets.values()];
+}
+function renderCustomerChangeTable(id, rows, nameLabel) {
+  if (!$(id)) return;
+  const body = rows.map(x => `<tr>
+    <td>${esc(x.key)}</td>
+    <td class="num">${fmtMoney(x.directNewCount)}</td><td class="num">${fmtWan(x.directNewSpend)}w</td>
+    <td class="num">${fmtMoney(x.channelNewCount)}</td><td class="num">${fmtWan(x.channelNewSpend)}w</td>
+    <td class="num">${fmtMoney(x.directLostCount)}</td><td class="num">${fmtWan(x.directLostSpend)}w</td>
+    <td class="num">${fmtMoney(x.channelLostCount)}</td><td class="num">${fmtWan(x.channelLostSpend)}w</td>
+  </tr>`).join("");
+  $(id).innerHTML = `<thead><tr><th>${esc(nameLabel)}</th><th class="num">直签新增</th><th class="num">新增消耗</th><th class="num">渠道新增</th><th class="num">新增消耗</th><th class="num">直签流失</th><th class="num">上月消耗</th><th class="num">渠道流失</th><th class="num">上月消耗</th></tr></thead><tbody>${body || `<tr><td colspan="9" class="empty">暂无新增或流失数据</td></tr>`}</tbody>`;
+}
+function renderCustomerChangeStats(curMonth, endDate, prevMonth) {
+  const changes = customerChangeRows(curMonth, endDate, prevMonth);
+  renderCustomerChangeTable("customerChangeSummaryTable", aggregateCustomerChanges(changes, x => x.type), "类型");
+  renderCustomerChangeTable("teamCustomerChangeTable", aggregateCustomerChanges(changes, x => x.team).sort((a, b) => (b.directNewSpend + b.channelNewSpend + b.directLostSpend + b.channelLostSpend) - (a.directNewSpend + a.channelNewSpend + a.directLostSpend + a.channelLostSpend)), "商务组");
+  renderCustomerChangeTable("salesCustomerChangeTable", aggregateCustomerChanges(changes, x => x.sales).sort((a, b) => (b.directNewSpend + b.channelNewSpend + b.directLostSpend + b.channelLostSpend) - (a.directNewSpend + a.channelNewSpend + a.directLostSpend + a.channelLostSpend)), "商务");
 }
 function renderCustomerTable(list, selfMap) {
   const by = group(list, r => `${r[cols["客户类型"]]}|${r[cols["商机名称"]]}|${r[cols["项目"]]}`);
