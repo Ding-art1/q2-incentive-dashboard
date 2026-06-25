@@ -450,16 +450,9 @@ function renderWeeklyDashboard(start, end) {
 }
 function renderOperateDashboard(y, dates, operateRows) {
   const yOperate = rows.filter(r => r[cols.date] === y && filtered.includes(r) && r[cols["合作模式-DOSS"]] === "代运营");
-  const actual = sum(operateRows);
-  const target = targetForPeriod("代运营", filtered);
   $("operateMetrics").innerHTML = [
     metric("代运营昨日消耗", `${fmtWan(sum(yOperate))}w`, y, "biz-operate"),
-    metric("代运营周期实绩", `${fmtWan(actual)}w`, `目标 ${fmtWan(target)}w｜达成 ${fmtPct(actual, target)}`, "biz-operate"),
   ].join("");
-  chart("operateTargetChart", "bar", ["代运营"], [
-    { label: "实际消耗", data: [actual], backgroundColor: palette.amber },
-    { label: "消耗目标", data: [target], backgroundColor: "rgba(117,131,154,.45)" }
-  ]);
   const topProjects = group(operateRows, r => r[cols["项目"]] || r[cols["商机名称"]]).sort((a, b) => b.value - a.value).slice(0, 8).map(x => x.label);
   chart("operateProjectDailyChart", "line", dates, topProjects.map((project, i) => {
     const list = operateRows.filter(r => (r[cols["项目"]] || r[cols["商机名称"]]) === project);
