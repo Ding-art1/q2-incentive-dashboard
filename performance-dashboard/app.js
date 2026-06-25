@@ -103,6 +103,9 @@ function projectOptions(current = "") {
   const list = [current, "未填写", ...rows.map(r => r[cols["项目"]])].filter(Boolean);
   return [...new Set(list)];
 }
+function projectDatalistId(key) {
+  return `project-options-${`${key}`.replace(/[^\w\u4e00-\u9fa5-]/g, "-")}`;
+}
 function uploadHistory() { return JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]"); }
 function setUploadHistory(v) { localStorage.setItem(uploadHistoryKey, JSON.stringify(v)); }
 function relationLookup() {
@@ -1058,16 +1061,20 @@ function renderUploadedNew(items) {
     return true;
   });
   const options = ["存量商机", "代充值新客户", "代运营新客户", "代充值新渠道", "历史渠道新增主体"];
-  $("newTable").innerHTML = `<thead><tr><th>自动识别类型</th><th>客户/渠道</th><th>主体</th><th>项目</th><th>商务</th><th>真实类型</th></tr></thead><tbody>${newItems.map(x => {
+  $("newTable").innerHTML = `<thead><tr><th>自动识别类型</th><th>客户/渠道</th><th>项目</th><th>商务</th><th>真实类型</th><th>主体</th></tr></thead><tbody>${newItems.map(x => {
     const key = x.labelKey;
     const projectDefault = x.project || "未填写";
+    const datalistId = projectDatalistId(key);
     return `<tr>
       <td>${esc(x.kind)}</td>
       <td>${esc(x.opportunity)}</td>
-      <td>${esc(x.subject || "-")}</td>
-      <td><select class="newProjectSelect" data-name="${esc(key)}" data-default="${esc(projectDefault)}">${projectOptions(projectDefault).map(opt => `<option>${esc(opt)}</option>`).join("")}</select></td>
+      <td>
+        <input class="newProjectSelect projectSuggest" list="${esc(datalistId)}" data-name="${esc(key)}" data-default="${esc(projectDefault)}" placeholder="输入项目名称" />
+        <datalist id="${esc(datalistId)}">${projectOptions(projectDefault).map(opt => `<option value="${esc(opt)}"></option>`).join("")}</datalist>
+      </td>
       <td>${esc(x.sales || "-")}</td>
       <td><select class="newSelect" data-name="${esc(key)}" data-default="${esc(x.defaultLabel || "存量商机")}">${options.map(opt => `<option>${esc(opt)}</option>`).join("")}</select></td>
+      <td>${esc(x.subject || "-")}</td>
     </tr>`;
   }).join("") || `<tr><td colspan="6" class="empty">本月暂无可新增识别的直签客户、渠道或渠道主体</td></tr>`}</tbody>`;
   document.querySelectorAll(".newSelect").forEach(s => { s.value = labels[s.dataset.name] || s.dataset.default || "存量商机"; });

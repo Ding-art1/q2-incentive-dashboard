@@ -302,6 +302,10 @@ table { width: 100%; border-collapse: collapse; min-width: 980px; }
 th, td { padding: 9px 10px; border-bottom: 1px solid #edf1f7; text-align: left; white-space: nowrap; }
 th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer; color: #334155; }
 .num { text-align: right; }
+.projectSuggest {
+  width: 220px;
+  min-height: 34px;
+}
 .pager { display: flex; justify-content: center; gap: 18px; align-items: center; margin-top: 12px; padding: 10px; }
 .rankList { display: grid; gap: 8px; }
 .rankRow { display: grid; grid-template-columns: 1fr 70px 62px; gap: 8px; align-items: center; }
