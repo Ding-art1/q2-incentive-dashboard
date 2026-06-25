@@ -61,6 +61,11 @@ function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padS
 function normalizeDateValue(value) {
   if (!value) return "";
   if (value instanceof Date && !Number.isNaN(value.getTime())) return dateStr(value);
+  if (typeof value === "number" && Number.isFinite(value)) {
+    const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+    const d = new Date(excelEpoch.getTime() + value * 86400000);
+    return dateStr(new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+  }
   const text = `${value}`.trim();
   if (!text) return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
@@ -97,6 +102,11 @@ function setNewLabels(v) { localStorage.setItem(newLabelKey, JSON.stringify(v));
 function newProjects() { return JSON.parse(localStorage.getItem(newProjectKey) || "{}"); }
 function setNewProjects(v) { localStorage.setItem(newProjectKey, JSON.stringify(v)); }
 function effectiveNewLabel(entry, labels = newLabels()) { return labels[entry.labelKey] || entry.defaultLabel || "存量商机"; }
+function labelToBelong(label, fallback = "") {
+  if (label === "代充值新渠道" || label === "历史渠道新增主体") return "渠道推荐";
+  if (label === "代充值新客户" || label === "代运营新客户") return "直客自拓";
+  return fallback;
+}
 function projectOptions(current = "") {
   const list = [current, "未填写", ...rows.map(r => r[cols["项目"]])].filter(Boolean);
   return [...new Set(list)];
@@ -135,9 +145,14 @@ function uploadedRecordFromObject(row) {
   const opportunity = row["商机名称"] || "";
   const subject = row["广告主主体"] || "";
   const relation = relationMap.get(`${opportunity}|${subject}`) || {};
-  const belong = row["归属类别"] || row["直客or渠道"] || relation.belong || "";
+  const labels = newLabels();
+  const projects = newProjects();
+  const opportunityKey = opportunity;
+  const channelSubjectKey = `channelSubject|${opportunity}|${subject}`;
+  const savedLabel = labels[channelSubjectKey] || labels[opportunityKey] || "";
+  const belong = labelToBelong(savedLabel, row["归属类别"] || row["直客or渠道"] || relation.belong || "");
   const customerType = row["客户类型"] || (belong === "渠道推荐" || `${belong}`.includes("渠道") ? "渠道" : "直签");
-  const project = row["项目"] || relation.project || opportunity || "";
+  const project = projects[channelSubjectKey] || projects[opportunityKey] || row["项目"] || relation.project || opportunity || "";
   const derived = {
     date,
     monthKey,
@@ -1127,7 +1142,9 @@ function saveNewLabelSelections() {
   const projects = newProjects();
   document.querySelectorAll(".newProjectSelect").forEach(s => projects[s.dataset.name] = s.value);
   setNewProjects(projects);
-  renderAll();
+  rebuildAllRows();
+  rows = scopedRowsFor(currentUser);
+  applyFilters();
   for (const id of ["saveNewLabels", "saveNewLabelsInChanges"]) {
     const btn = $(id);
     if (!btn) continue;
@@ -1248,6 +1265,7 @@ function init() {
     $("endDate").value = max;
     $("dataMeta").textContent = `数据范围 ${dataDateMin(allRows)} 至 ${max}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
     applyFilters();
+    e.target.value = "";
   };
   applyFilters();
 }
