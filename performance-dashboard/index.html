@@ -29,7 +29,7 @@
       <button class="nav adminOnly" data-panel="targets">目标管理</button>
       <a class="nav link" href="https://ding-art1.github.io/q2-incentive-dashboard/" target="_blank" rel="noreferrer">毛利板块</a>
       <button class="nav" data-panel="customers">客户构成</button>
-      <button class="nav restrictedOnly" data-panel="changes">新增&流失</button>
+      <button class="nav adminOnly" data-panel="changes">新增&流失</button>
       <button class="nav adminOnly" data-panel="dataManage">数据管理</button>
     </aside>
     <main>
@@ -226,7 +226,7 @@
         </section>
       </section>
 
-      <section id="changes" class="panel">
+      <section id="changes" class="panel adminOnly">
         <section class="block"><h3>新增识别 <small>直签客户新增=新开客户；渠道新增=代充值新渠道或历史渠道新增主体</small><button id="saveNewLabelsInChanges" class="inlineBtn">保存本次选择</button></h3>
           <section class="subBlock"><h4>新增商机</h4><div class="tableWrap compact"><table id="newOpportunityTable"></table></div></section>
           <section class="subBlock"><h4>新增主体</h4><div class="tableWrap compact"><table id="newSubjectTable"></table></div></section>
