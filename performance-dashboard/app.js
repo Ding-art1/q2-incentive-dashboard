@@ -27,8 +27,8 @@ const defaultTargetRows = [
   { month: "2026-06", level: "business", name: "本地推", spend: 46_000_000, fresh: 0 },
   { month: "2026-06", level: "business", name: "代充值", spend: 43_000_000, fresh: 0 },
   { month: "2026-06", level: "business", name: "代运营", spend: 1_800_000, fresh: 0 },
-  { month: "2026-06", level: "team", name: "销售一组", spend: 20_000_000, fresh: 0 },
-  { month: "2026-06", level: "team", name: "销售二组", spend: 25_000_000, fresh: 0 }
+  { month: "2026-06", level: "team", name: "销售一组", biz: "本地推", spend: 20_000_000, fresh: 0 },
+  { month: "2026-06", level: "team", name: "销售二组", biz: "本地推", spend: 25_000_000, fresh: 0 }
 ];
 const salesTeams = {
   "程鹏": "销售一组",
@@ -244,18 +244,34 @@ function applyAuth(user) {
     location.reload();
   };
 }
-function targetId(row) { return `${row.month}|${row.level}|${row.name}`; }
+function targetBusiness(row) {
+  if (row.level === "business") return row.name;
+  return row.biz || "本地推";
+}
+function normalizeTargetRow(row) {
+  if (!row) return row;
+  return row.level === "business" ? { ...row, biz: "" } : { ...row, biz: row.biz || "本地推" };
+}
+function targetId(row) {
+  const normalized = normalizeTargetRow(row);
+  return `${normalized.month}|${normalized.level}|${normalized.name}|${normalized.biz || ""}`;
+}
 function getTargets() {
   const saved = JSON.parse(localStorage.getItem(targetKey) || "{}");
-  const defaults = Object.fromEntries(defaultTargetRows.map(row => [targetId(row), row]));
-  return { ...defaults, ...saved };
+  const normalizeMap = source => Object.fromEntries(Object.values(source).map(row => {
+    const normalized = normalizeTargetRow(row);
+    return [targetId(normalized), normalized];
+  }));
+  const defaults = normalizeMap(defaultTargetRows);
+  return { ...defaults, ...normalizeMap(saved) };
 }
 function setTargets(v) { localStorage.setItem(targetKey, JSON.stringify(v)); }
 function targetRows(month = "") {
   return Object.values(getTargets()).filter(row => !month || row.month === month);
 }
-function targetFor(month, level, name) {
-  return getTargets()[`${month}|${level}|${name}`] || { month, level, name, spend: 0, fresh: 0 };
+function targetFor(month, level, name, biz = "") {
+  const targetBiz = level === "business" ? "" : biz || "本地推";
+  return getTargets()[`${month}|${level}|${name}|${targetBiz}`] || { month, level, name, biz: targetBiz, spend: 0, fresh: 0 };
 }
 function targetVisible(row) {
   if (isAdmin()) return true;
@@ -318,10 +334,10 @@ function scopedDashboardTargetForPeriod(name, list) {
   if (!document.body.classList.contains("my-dashboard-active")) return targetForPeriod(name, list);
   const months = periodMonths(list);
   if (currentUser?.role === "person") {
-    return months.reduce((acc, month) => acc + (targetFor(month, "person", currentUser.person).spend || 0), 0);
+    return months.reduce((acc, month) => acc + (targetFor(month, "person", currentUser.person, name).spend || 0), 0);
   }
   if (currentUser?.role === "team") {
-    return months.reduce((acc, month) => acc + (targetFor(month, "team", currentUser.team).spend || 0), 0);
+    return months.reduce((acc, month) => acc + (targetFor(month, "team", currentUser.team, name).spend || 0), 0);
   }
   return targetForPeriod(name, list);
 }
@@ -447,7 +463,7 @@ function renderTargetCharts(bizId = "targetBusinessChart", teamId = "targetTeamC
   const draw = (id, level, limit = 12) => {
     if (!$(id)) return;
     const data = targetProgressRows(month, level, sourceRows, scopedTargets).slice(0, limit);
-    chart(id, "bar", data.map(x => x.name), [
+    chart(id, "bar", data.map(targetChartLabel), [
       { label: "消耗完成率", data: data.map(x => x.spendPct), backgroundColor: palette.blue },
       { label: "新开完成率", data: data.map(x => x.newPct), backgroundColor: palette.green }
     ], {
@@ -549,20 +565,25 @@ function avgDaily(list) {
   return sum(list) / days;
 }
 
-function actualRowsForTarget(month, level, name, sourceRows = rows) {
+function actualRowsForTarget(month, level, name, sourceRows = rows, biz = "") {
   const base = sourceRows.filter(r => r[cols.monthKey] === month && r[cols.date] <= ($("endDate").value || dataDateMax(sourceRows)));
-  if (level === "business") return bizRows(base, name);
-  if (level === "team") return localPushRows(base).filter(r => salesTeam(r) === name);
-  if (level === "person") return localPushRows(base).filter(r => r[cols["商务"]] === name);
+  const business = level === "business" ? name : biz || "本地推";
+  const businessRows = bizRows(base, business);
+  if (level === "business") return businessRows;
+  if (level === "team") return businessRows.filter(r => salesTeam(r) === name);
+  if (level === "person") return businessRows.filter(r => r[cols["商务"]] === name);
   return [];
 }
 
-function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads = true) {
+function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads = true, biz = "") {
   const labels = newLabels();
   const counted = new Set();
+  const business = level === "business" ? name : biz || "本地推";
   for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(sourceRows), sourceRows)) {
     const label = effectiveNewLabel(entry, labels);
     if (!entry.opportunity || !isFreshCustomerLabel(label) || counted.has(entry.opportunity)) continue;
+    const businessMatch = business === "本地推" ? entry.port === "巨量-本地推" : freshLabelMatchesBusiness(label, business);
+    if (!businessMatch) continue;
     const match = level === "business"
       ? (name === "本地推" ? entry.port === "巨量-本地推" : freshLabelMatchesBusiness(label, name))
       : level === "team"
@@ -585,6 +606,8 @@ function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads
       const biz = colMap["合作模式-DOSS"] || "";
       const port = colMap["媒体端口"] || "";
       const sales = colMap["商务"] || "";
+      const businessMatch = business === "本地推" ? port === "巨量-本地推" : freshLabelMatchesBusiness(label, business);
+      if (!businessMatch) continue;
       const match = level === "business"
         ? (name === "本地推" ? port === "巨量-本地推" : freshLabelMatchesBusiness(label, name))
         : level === "team"
@@ -638,11 +661,15 @@ function targetProgressRows(month, level, sourceRows = rows, scopedTargets = tru
   return targetRows(month)
     .filter(row => row.level === level && (!scopedTargets || targetVisible(row)))
     .map(row => {
-      const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, sourceRows));
-      const actualNew = actualNewForTarget(row.month, row.level, row.name, sourceRows, scopedTargets);
+      const biz = targetBusiness(row);
+      const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, sourceRows, biz));
+      const actualNew = actualNewForTarget(row.month, row.level, row.name, sourceRows, scopedTargets, biz);
       return { ...row, actualSpend, actualNew, spendPct: row.spend ? actualSpend / row.spend * 100 : 0, newPct: row.fresh ? actualNew / row.fresh * 100 : 0 };
     })
     .sort((a, b) => b.spendPct - a.spendPct);
+}
+function targetChartLabel(row) {
+  return row.level === "business" ? row.name : `${row.name}-${targetBusiness(row)}`;
 }
 
 function renderReports() {
@@ -665,11 +692,11 @@ function monthProgressFor(date) {
 function progressRow(label, value, tone = "") {
   return `<div class="progressRow ${tone}"><span>${esc(label)}</span><strong>${pctFmt.format(value)}%</strong><div class="progressTrack"><i style="width:${Math.max(0, Math.min(100, value || 0))}%"></i></div></div>`;
 }
-function teamCompare(rows, monthRows) {
+function teamCompare(rows, monthRows, bizName = "本地推") {
   return ["销售一组", "销售二组"].map(team => {
     const day = sum(rows.filter(r => salesTeam(r) === team));
     const month = sum(monthRows.filter(r => salesTeam(r) === team));
-    const target = targetFor(monthOf(monthRows[0]?.[cols.date] || $("endDate").value || dataDateMax(rows)), "team", team).spend || 0;
+    const target = targetFor(monthOf(monthRows[0]?.[cols.date] || $("endDate").value || dataDateMax(rows)), "team", team, bizName).spend || 0;
     return `<div class="teamLine"><span>${team}</span><b>昨日 ${fmtWan(day)}w</b><b>M月 ${fmtWan(month)}w</b><b>完成 ${fmtPct(month, target)}</b></div>`;
   }).join("");
 }
@@ -688,7 +715,7 @@ function report(id, dayRows, monthRows, name, target, options = {}) {
       ${progressRow("目标完成进度", completePct, diff >= 0 ? "ahead" : "behind")}
       <p class="${diff >= 0 ? "good" : "bad"}">${diff >= 0 ? "领先" : "落后"}时间进度 ${pctFmt.format(Math.abs(diff))}%</p>
     </div>
-    ${options.showTeam ? `<hr><h4>销售一组 / 销售二组对比</h4><div class="teamCompare">${teamCompare(dayRows, monthRows)}</div>` : ""}
+    ${options.showTeam ? `<hr><h4>销售一组 / 销售二组对比</h4><div class="teamCompare">${teamCompare(dayRows, monthRows, name)}</div>` : ""}
     <hr>
     <p>当前平均日耗：${fmtWan(avgDaily(monthRows))}w</p>
     <p>直签客户TOP3：${topText(topDirect)}</p>
@@ -739,20 +766,43 @@ function refreshTargetNameOptions() {
   const options = targetOptions(level);
   $("targetName").innerHTML = options.map(name => `<option>${esc(name)}</option>`).join("");
   if (options.includes(current)) $("targetName").value = current;
+  refreshTargetBizOptions();
   loadTargetEditorValues();
 }
 
+function refreshTargetBizOptions() {
+  const targetBiz = $("targetBiz");
+  if (!targetBiz) return;
+  const level = $("targetLevel").value;
+  const current = targetBiz.value;
+  const options = ["本地推", "代充值", "代运营"];
+  targetBiz.innerHTML = options.map(name => `<option>${esc(name)}</option>`).join("");
+  if (level === "business") {
+    targetBiz.value = $("targetName").value || "本地推";
+    targetBiz.disabled = true;
+    return;
+  }
+  targetBiz.disabled = false;
+  targetBiz.value = options.includes(current) ? current : "本地推";
+}
+
 function loadTargetEditorValues() {
-  const row = targetFor($("targetMonth").value, $("targetLevel").value, $("targetName").value);
+  const level = $("targetLevel").value;
+  const name = $("targetName").value;
+  const biz = level === "business" ? name : $("targetBiz").value;
+  const row = targetFor($("targetMonth").value, level, name, biz);
   $("targetSpend").value = row.spend ? Math.round(row.spend / 10000) : "";
   $("targetNew").value = row.fresh || "";
 }
 
 function saveTarget() {
+  const level = $("targetLevel").value;
+  const name = $("targetName").value;
   const row = {
     month: $("targetMonth").value,
-    level: $("targetLevel").value,
-    name: $("targetName").value,
+    level,
+    name,
+    biz: level === "business" ? "" : $("targetBiz").value,
     spend: Number($("targetSpend").value || 0) * 10000,
     fresh: Number($("targetNew").value || 0)
   };
@@ -770,12 +820,14 @@ function renderTargets() {
   const month = $("targetMonth").value || monthOf($("endDate").value || dataDateMax(rows));
   const levelName = { business: "业务", team: "销售组", person: "商务个人" };
   const body = targetRows(month).map(row => {
-    const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name));
-    const actualNew = actualNewForTarget(row.month, row.level, row.name);
+    const biz = targetBusiness(row);
+    const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, rows, biz));
+    const actualNew = actualNewForTarget(row.month, row.level, row.name, rows, true, biz);
     return `<tr>
       <td>${esc(row.month)}</td>
       <td>${levelName[row.level] || row.level}</td>
       <td>${esc(row.name)}</td>
+      <td>${esc(biz)}</td>
       <td class="num">${fmtWan(row.spend)}w</td>
       <td class="num">${fmtWan(actualSpend)}w</td>
       <td>${fmtPct(actualSpend, row.spend)}</td>
@@ -784,7 +836,7 @@ function renderTargets() {
       <td>${fmtPct(actualNew, row.fresh)}</td>
     </tr>`;
   }).join("");
-  $("targetTable").innerHTML = `<thead><tr><th>月份</th><th>层级</th><th>对象</th><th class="num">消耗目标</th><th class="num">实际消耗</th><th>消耗完成</th><th class="num">新开目标</th><th class="num">实际新开</th><th>新开完成</th></tr></thead><tbody>${body || `<tr><td colspan="9" class="empty">暂无目标</td></tr>`}</tbody>`;
+  $("targetTable").innerHTML = `<thead><tr><th>月份</th><th>层级</th><th>对象</th><th>目标业务</th><th class="num">消耗目标</th><th class="num">实际消耗</th><th>消耗完成</th><th class="num">新开目标</th><th class="num">实际新开</th><th>新开完成</th></tr></thead><tbody>${body || `<tr><td colspan="10" class="empty">暂无目标</td></tr>`}</tbody>`;
 }
 
 function customerFilterRowsForMonth(month, endLimit = "") {
@@ -1224,7 +1276,8 @@ function init() {
   $("exportCsv").onclick = exportCsv;
   $("targetMonth").onchange = () => { loadTargetEditorValues(); renderTargets(); };
   $("targetLevel").onchange = refreshTargetNameOptions;
-  $("targetName").onchange = loadTargetEditorValues;
+  $("targetName").onchange = () => { refreshTargetBizOptions(); loadTargetEditorValues(); };
+  $("targetBiz").onchange = loadTargetEditorValues;
   $("saveTarget").onclick = saveTarget;
   $("customerLookupBtn").onclick = renderCustomerLookup;
   $("customerLookupInput").onkeydown = e => { if (e.key === "Enter") renderCustomerLookup(); };
