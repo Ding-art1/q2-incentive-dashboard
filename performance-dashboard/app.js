@@ -454,12 +454,24 @@ function renderOperateDashboard(y, dates, operateRows) {
     metric("代运营昨日消耗", `${fmtWan(sum(yOperate))}w`, y, "biz-operate"),
   ].join("");
   const topProjects = group(operateRows, r => r[cols["项目"]] || r[cols["商机名称"]]).sort((a, b) => b.value - a.value).slice(0, 8).map(x => x.label);
-  chart("operateProjectDailyChart", "line", dates, topProjects.map((project, i) => {
+  Object.keys(charts).filter(id => id.startsWith("operateProjectDailyChart-")).forEach(id => {
+    charts[id].destroy();
+    delete charts[id];
+  });
+  $("operateProjectDailyGrid").innerHTML = topProjects.map((project, i) => `
+    <section class="miniChart">
+      <h5>${esc(project)}</h5>
+      <canvas id="operateProjectDailyChart-${i}"></canvas>
+    </section>
+  `).join("") || `<div class="empty">暂无代运营项目数据</div>`;
+  topProjects.forEach((project, i) => {
     const list = operateRows.filter(r => (r[cols["项目"]] || r[cols["商机名称"]]) === project);
     const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
     const colors = [palette.amber, palette.blue, palette.green, palette.violet, palette.red];
-    return { label: project, data: dates.map(date => map.get(date) || 0), borderColor: colors[i % colors.length], backgroundColor: "rgba(243,154,34,.1)", tension: .25 };
-  }));
+    chart(`operateProjectDailyChart-${i}`, "line", dates, [
+      { label: project, data: dates.map(date => map.get(date) || 0), borderColor: colors[i % colors.length], backgroundColor: "rgba(243,154,34,.1)", tension: .25 }
+    ], { plugins: { legend: { display: false } } });
+  });
 }
 function renderRechargeDashboard(y, start, end, dates) {
   const yRows = rows.filter(r => r[cols.date] === y && filtered.includes(r));

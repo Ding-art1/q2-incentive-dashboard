@@ -195,6 +195,26 @@ button { cursor: pointer; font-weight: 700; }
 .card.wide { grid-column: 1 / -1; }
 .card h4 { margin: 0 0 10px; font-size: 16px; }
 canvas { width: 100% !important; height: 280px !important; }
+.miniChartGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 14px;
+}
+.miniChart {
+  min-height: 260px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.miniChart h5 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--ink);
+}
+.miniChart canvas {
+  height: 205px !important;
+}
 .biz-local, .biz-recharge, .biz-operate, .biz-new {
   position: relative;
   overflow: hidden;
@@ -366,8 +386,10 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   .sidebar h1 { display: none; }
   .nav { width: auto; white-space: nowrap; }
   .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr 1fr; }
+  .miniChartGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 }
 @media (max-width: 680px) {
   main { padding: 16px; }
   .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr; }
+  .miniChartGrid { grid-template-columns: 1fr; }
 }
