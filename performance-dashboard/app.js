@@ -542,7 +542,7 @@ function renderRechargeDashboard(y, start, end, dates, sourceRows = rows, source
   });
   chart("rechargeTeamDailyChart", "line", dates, teamDailyDatasets);
   chart("rechargeTeamWeekChart", "bar", teamNames, [{ label: "本周代充值消耗", data: teamNames.map(team => sum(bizRows(weekRows, "代充值").filter(r => salesTeam(r) === team))), backgroundColor: [palette.blue, palette.green] }]);
-  renderTargetCharts(null, "dashboardTeamTargetChart", "dashboardPersonTargetChart", sourceRows, document.body.classList.contains("my-dashboard-active"));
+  renderTargetCharts("dashboardBusinessTargetChart", "dashboardTeamTargetChart", "dashboardPersonTargetChart", sourceRows, document.body.classList.contains("my-dashboard-active"));
 }
 function avgDaily(list) {
   const days = group(list, r => r[cols.date]).filter(x => x.value > 0).length || 1;
@@ -767,7 +767,6 @@ function saveTarget() {
 
 function renderTargets() {
   if (!$("targetTable")) return;
-  renderTargetCharts();
   const month = $("targetMonth").value || monthOf($("endDate").value || dataDateMax(rows));
   const levelName = { business: "业务", team: "销售组", person: "商务个人" };
   const body = targetRows(month).map(row => {

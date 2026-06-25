@@ -90,8 +90,14 @@
           <div class="grid three">
             <article class="card"><h4>销售组代充值日耗曲线</h4><canvas id="rechargeTeamDailyChart"></canvas></article>
             <article class="card"><h4>销售组本周代充值消耗</h4><canvas id="rechargeTeamWeekChart"></canvas></article>
-            <article class="card"><h4>各组消耗/新开完成进度</h4><canvas id="dashboardTeamTargetChart"></canvas></article>
-            <article class="card wide"><h4>各人消耗/新开完成进度</h4><canvas id="dashboardPersonTargetChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>目标达成总览</h3>
+          <div class="grid three">
+            <article class="card"><h4>业务目标达成</h4><canvas id="dashboardBusinessTargetChart"></canvas></article>
+            <article class="card"><h4>销售组目标达成</h4><canvas id="dashboardTeamTargetChart"></canvas></article>
+            <article class="card"><h4>商务个人目标达成</h4><canvas id="dashboardPersonTargetChart"></canvas></article>
           </div>
         </section>
         <section class="block">
@@ -133,14 +139,6 @@
           <label>月度消耗目标（万）<input id="targetSpend" type="number" min="0" step="1" placeholder="例如 4300" /></label>
           <label>月度新开目标<input id="targetNew" type="number" min="0" step="1" placeholder="例如 10" /></label>
           <button id="saveTarget">保存目标</button>
-        </section>
-        <section class="block">
-          <h3>目标管理总览</h3>
-          <div class="grid three">
-            <article class="card"><h4>业务目标达成</h4><canvas id="targetBusinessChart"></canvas></article>
-            <article class="card"><h4>销售组目标达成</h4><canvas id="targetTeamChart"></canvas></article>
-            <article class="card"><h4>商务个人目标达成</h4><canvas id="targetPersonChart"></canvas></article>
-          </div>
         </section>
         <section class="block"><h3>目标明细</h3><div class="tableWrap compact"><table id="targetTable"></table></div></section>
       </section>
