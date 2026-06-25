@@ -23,6 +23,7 @@
       <h1>业绩看板</h1>
       <button class="nav active" data-panel="dashboard">仪表盘</button>
       <button class="nav userOnly" data-panel="myDashboard">我的仪表盘</button>
+      <button class="nav" data-panel="publicity">数据公示</button>
       <button class="nav restrictedOnly" data-panel="daily">日报</button>
       <button class="nav" data-panel="details">消耗明细</button>
       <button class="nav adminOnly" data-panel="targets">目标管理</button>
@@ -105,6 +106,47 @@
           <div class="grid two">
             <article class="card"><h4>海南/深圳端口日耗趋势图</h4><canvas id="portDailyChart"></canvas></article>
             <article class="card"><h4>筛选周期内端口消耗占比分布</h4><canvas id="portShareChart"></canvas></article>
+          </div>
+        </section>
+      </section>
+
+      <section id="publicity" class="panel">
+        <section class="publicBoard">
+          <div class="publicTop">
+            <article class="publicProgress">
+              <h3 id="publicMonthTitle">M月时间进度</h3>
+              <strong id="publicMonthPct">0%</strong>
+              <div class="publicTrack"><i id="publicMonthBar"></i></div>
+              <p><b id="publicElapsedDays">当前0天</b><span>|</span><span id="publicMonthDays">目标0天</span></p>
+            </article>
+            <article class="publicCountdown">
+              <h3 id="publicCountdownTitle">距离M月结束还有：</h3>
+              <strong id="publicCountdownDays">0</strong>
+              <span>天</span>
+            </article>
+            <article class="publicTrend">
+              <h3>全年本地推日耗趋势</h3>
+              <canvas id="publicYearTrend"></canvas>
+            </article>
+          </div>
+          <div class="publicGoalGrid">
+            <article class="publicGoal blue">
+              <h3 id="publicTeamOneTitle">M月销售1组消耗目标达成</h3>
+              <strong id="publicTeamOnePct">0%</strong>
+              <div class="publicTrack"><i id="publicTeamOneBar"></i></div>
+              <p><b id="publicTeamOneActual">当前0w</b><span>|</span><span id="publicTeamOneTarget">目标0w</span></p>
+            </article>
+            <article class="publicGoal green">
+              <h3 id="publicTeamTwoTitle">M月销售2组消耗目标达成</h3>
+              <strong id="publicTeamTwoPct">0%</strong>
+              <div class="publicTrack"><i id="publicTeamTwoBar"></i></div>
+              <p><b id="publicTeamTwoActual">当前0w</b><span>|</span><span id="publicTeamTwoTarget">目标0w</span></p>
+            </article>
+          </div>
+          <div class="publicRankGrid">
+            <article class="publicRank purple"><h3 id="publicCompletionTitle">M月消耗完成率排行</h3><canvas id="publicCompletionChart"></canvas></article>
+            <article class="publicRank blue"><h3 id="publicMonthRankTitle">M月消耗排行</h3><canvas id="publicMonthRankChart"></canvas></article>
+            <article class="publicRank amber"><h3>昨日消耗排行</h3><canvas id="publicYesterdayRankChart"></canvas></article>
           </div>
         </section>
       </section>

@@ -233,6 +233,118 @@ canvas { width: 100% !important; height: 280px !important; }
 .biz-recharge strong { color: var(--green); }
 .biz-operate strong { color: var(--amber); }
 .biz-new strong { color: var(--red); }
+.publicBoard {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fbff 0%, #f1f5fb 100%);
+  box-shadow: var(--shadow);
+}
+.publicTop {
+  display: grid;
+  grid-template-columns: 1.1fr .9fr 2.2fr;
+  gap: 14px;
+  align-items: stretch;
+}
+.publicProgress, .publicCountdown, .publicTrend, .publicGoal, .publicRank {
+  border: 1px solid #e2e9f5;
+  border-radius: 14px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 10px 26px rgba(17,24,39,.06);
+}
+.publicProgress, .publicCountdown, .publicGoal {
+  padding: 20px 22px;
+}
+.publicProgress h3, .publicCountdown h3, .publicTrend h3, .publicGoal h3, .publicRank h3 {
+  margin: 0 0 14px;
+  color: #1d2a44;
+  font-size: 16px;
+}
+.publicProgress h3, .publicCountdown h3, .publicCountdown strong {
+  color: #ef5b63;
+}
+.publicProgress strong, .publicCountdown strong, .publicGoal strong {
+  display: block;
+  font-size: 34px;
+  line-height: 1.05;
+  text-align: center;
+}
+.publicProgress p, .publicGoal p {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  color: #43516a;
+  font-weight: 700;
+}
+.publicProgress p b { color: #ef5b63; }
+.publicCountdown {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+.publicCountdown strong {
+  width: 74px;
+  padding: 8px 0;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 10px 22px rgba(239,91,99,.08);
+}
+.publicCountdown span {
+  color: var(--muted);
+  font-weight: 700;
+}
+.publicTrack {
+  height: 14px;
+  margin-top: 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7edf6;
+}
+.publicTrack i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #4aa3ff);
+}
+.publicProgress .publicTrack i { background: linear-gradient(90deg, #ef2d35, #ff7a7f); }
+.publicGoal.green .publicTrack i { background: linear-gradient(90deg, var(--green), #2fd19c); }
+.publicGoalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.publicGoal.blue {
+  background: linear-gradient(135deg, #eef4ff, #f8fbff);
+  border-color: #c8d8ff;
+}
+.publicGoal.green {
+  background: linear-gradient(135deg, #ecfbf6, #f8fffd);
+  border-color: #bfeee0;
+}
+.publicGoal.blue h3, .publicGoal.blue strong, .publicGoal.blue p b { color: var(--blue); }
+.publicGoal.green h3, .publicGoal.green strong, .publicGoal.green p b { color: var(--green); }
+.publicTrend, .publicRank {
+  padding: 16px;
+}
+.publicTrend canvas { height: 280px !important; }
+.publicRankGrid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr;
+  gap: 14px;
+  margin-top: 14px;
+}
+.publicRank {
+  min-height: 330px;
+}
+.publicRank canvas {
+  height: 280px !important;
+}
+.publicRank.purple { background: linear-gradient(135deg, #f5efff, #fbf9ff); }
+.publicRank.blue { background: linear-gradient(135deg, #f1f6ff, #fbfdff); }
+.publicRank.amber { background: linear-gradient(135deg, #fff7e8, #fffdf8); }
 .reportHero {
   padding: 22px;
   border-radius: 12px;
@@ -347,7 +459,7 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
 }
 .targetEditor {
   display: grid;
-  grid-template-columns: 140px 140px minmax(160px, 1fr) 180px 140px 120px;
+  grid-template-columns: 120px 120px minmax(150px, 1fr) 130px 150px 110px 110px;
   gap: 12px;
   align-items: end;
   padding: 14px;
@@ -391,10 +503,12 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   .sidebar h1 { display: none; }
   .nav { width: auto; white-space: nowrap; }
   .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr 1fr; }
+  .publicTop, .publicGoalGrid, .publicRankGrid { grid-template-columns: 1fr; }
   .miniChartGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 }
 @media (max-width: 680px) {
   main { padding: 16px; }
   .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr; }
+  .publicBoard { padding: 12px; }
   .miniChartGrid { grid-template-columns: 1fr; }
 }

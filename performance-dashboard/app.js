@@ -403,6 +403,85 @@ function renderTime() {
   $("quarterCountdown").textContent = `${Math.max(0, qDays - qElapsed)}天`;
 }
 
+function setPublicBar(id, value) {
+  const node = $(id);
+  if (!node) return;
+  node.style.width = `${Math.max(0, Math.min(100, value || 0))}%`;
+}
+
+function renderPublicity() {
+  if (!$("publicMonthPct")) return;
+  const end = $("endDate").value || dataDateMax(allRows);
+  const d = dateObj(end);
+  const year = d.getFullYear();
+  const month = monthOf(end);
+  const monthNum = Number(month.slice(5));
+  const elapsed = d.getDate();
+  const monthDays = new Date(year, d.getMonth() + 1, 0).getDate();
+  const monthPct = elapsed / monthDays * 100;
+  $("publicMonthTitle").textContent = `M${monthNum}时间进度`;
+  $("publicMonthPct").textContent = `${pctFmt.format(monthPct)}%`;
+  $("publicElapsedDays").textContent = `当前${elapsed}天`;
+  $("publicMonthDays").textContent = `目标${monthDays}天`;
+  $("publicCountdownTitle").textContent = `距离M${monthNum}结束还有：`;
+  $("publicCountdownDays").textContent = `${Math.max(0, monthDays - elapsed)}`;
+  setPublicBar("publicMonthBar", monthPct);
+
+  const publicRows = allRows.filter(r => r[cols.date] <= end);
+  const localRows = localPushRows(publicRows);
+  const yearRows = localRows.filter(r => r[cols.date] >= `${year}-01-01` && r[cols.date] <= end);
+  const yearDates = [...new Set(yearRows.map(r => r[cols.date]))].sort();
+  const dailyMap = new Map(group(yearRows, r => r[cols.date]).map(x => [x.label, x.value]));
+  chart("publicYearTrend", "line", yearDates, [
+    { label: "本地推日耗", data: yearDates.map(date => dailyMap.get(date) || 0), borderColor: palette.blue, backgroundColor: "rgba(47,107,255,.12)", tension: .25 }
+  ], { plugins: { legend: { display: false } } });
+
+  const monthRows = localRows.filter(r => r[cols.monthKey] === month && r[cols.date] <= end);
+  const teamSummary = (team, prefix, barId) => {
+    const actual = sum(monthRows.filter(r => salesTeam(r) === team));
+    const target = targetFor(month, "team", team, "本地推").spend || 0;
+    const pct = target ? actual / target * 100 : 0;
+    $(`${prefix}Title`).textContent = `M${monthNum}${team.replace("销售", "销售")}消耗目标达成`;
+    $(`${prefix}Pct`).textContent = `${pctFmt.format(pct)}%`;
+    $(`${prefix}Actual`).textContent = `当前${fmtWan(actual)}w`;
+    $(`${prefix}Target`).textContent = `目标${fmtWan(target)}w`;
+    setPublicBar(barId, pct);
+  };
+  teamSummary("销售一组", "publicTeamOne", "publicTeamOneBar");
+  teamSummary("销售二组", "publicTeamTwo", "publicTeamTwoBar");
+
+  const salesNames = [...new Set(monthRows.map(r => r[cols["商务"]]).filter(Boolean))];
+  const completion = salesNames.map(name => {
+    const actual = sum(monthRows.filter(r => r[cols["商务"]] === name));
+    const target = targetFor(month, "person", name, "本地推").spend || 0;
+    return { name, actual, target, pct: target ? actual / target * 100 : 0 };
+  }).sort((a, b) => b.pct - a.pct).slice(0, 10);
+  $("publicCompletionTitle").textContent = `M${monthNum}消耗完成率排行`;
+  chart("publicCompletionChart", "bar", completion.map(x => x.name), [
+    { label: "完成率", data: completion.map(x => x.pct), backgroundColor: palette.blue }
+  ], {
+    indexAxis: "y",
+    scales: {
+      x: { beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
+      y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
+    },
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `完成率：${pctFmt.format(ctx.parsed.x)}%` } } }
+  });
+
+  const monthRank = group(monthRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
+  $("publicMonthRankTitle").textContent = `M${monthNum}消耗排行`;
+  chart("publicMonthRankChart", "bar", monthRank.map(x => x.label), [
+    { label: "M月消耗", data: monthRank.map(x => x.value), backgroundColor: palette.blue }
+  ], { indexAxis: "y", plugins: { legend: { display: false } } });
+
+  const y = prevDate(end, 1);
+  const yRows = localRows.filter(r => r[cols.date] === y);
+  const yRank = group(yRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
+  chart("publicYesterdayRankChart", "bar", yRank.map(x => x.label), [
+    { label: "昨日消耗", data: yRank.map(x => x.value), backgroundColor: palette.red }
+  ], { indexAxis: "y", plugins: { legend: { display: false } } });
+}
+
 function renderDashboard() {
   renderTime();
   const sourceRows = dashboardSourceRows();
@@ -1245,7 +1324,7 @@ function downloadUploadedHistory() {
   const headers = ["上传时间", "文件名", ...((history[0] && history[0].columns) || [])];
   downloadCsv(headers, allRows, `上传历史数据-${Date.now()}.csv`);
 }
-function renderAll() { renderDashboard(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
+function renderAll() { renderDashboard(); renderPublicity(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
 
 function init() {
   const minDate = dataDateMin(allRows);
@@ -1267,6 +1346,7 @@ function init() {
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     $(btn.dataset.panel === "myDashboard" ? "dashboard" : btn.dataset.panel).classList.add("active");
     if (btn.dataset.panel === "dashboard" || btn.dataset.panel === "myDashboard") renderDashboard();
+    if (btn.dataset.panel === "publicity") renderPublicity();
   });
   $("applyFilters").onclick = applyFilters;
   $("resetFilters").onclick = () => { const max = dataDateMax(allRows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
