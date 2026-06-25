@@ -42,6 +42,9 @@ body.admin-user .userOnly {
 body.person-user.my-dashboard-active .rechargeDashboardBlock {
   display: none;
 }
+body.person-user .targetOverviewBlock {
+  display: none !important;
+}
 .loginScreen {
   min-height: 100vh;
   display: grid;
