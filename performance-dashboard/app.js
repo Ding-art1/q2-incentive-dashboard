@@ -218,7 +218,8 @@ function applyAuth(user) {
   rows = scopedRowsFor(user);
   filtered = rows;
   document.body.classList.remove("auth-locked");
-  document.body.classList.add("auth-ready", isAdmin() ? "admin-user" : "not-admin");
+  document.body.classList.remove("admin-user", "team-user", "person-user", "my-dashboard-active");
+  document.body.classList.add("auth-ready", isAdmin() ? "admin-user" : "not-admin", `${user.role}-user`);
   $("currentUser").textContent = `${user.name}｜${user.scopeLabel}`;
   $("logoutBtn").onclick = () => {
     sessionStorage.removeItem(authKey);
@@ -1166,6 +1167,7 @@ function init() {
     if (btn.classList.contains("userOnly") && isAdmin()) return;
     document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
+    document.body.classList.toggle("my-dashboard-active", btn.dataset.panel === "myDashboard");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     $(btn.dataset.panel === "myDashboard" ? "dashboard" : btn.dataset.panel).classList.add("active");
   });
