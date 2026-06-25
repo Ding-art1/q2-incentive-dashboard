@@ -110,6 +110,9 @@ function portRegion(portId) {
   if (["1740118613345288", "1816320944718987", "1818671124422667"].includes(port)) return "海南端口";
   return "";
 }
+function rowPortRegion(row) {
+  return row[cols["端口归属"]] || portRegion(row[cols["端口ID"]]) || "未填写";
+}
 function uploadHistory() { return JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]"); }
 function setUploadHistory(v) { localStorage.setItem(uploadHistoryKey, JSON.stringify(v)); }
 function relationLookup() {
@@ -390,13 +393,15 @@ function renderDashboard() {
   renderRechargeDashboard(y, start, end, dates);
 
   const localFiltered = localPushRows(filtered);
-  const port = group(localFiltered, r => `${r[cols["端口ID"]] || "未填写"}｜${r[cols["媒体端口"]] || "未填写"}`);
-  const topPorts = port.sort((a, b) => b.value - a.value).slice(0, 2).map(x => x.label);
+  const port = group(localFiltered, rowPortRegion);
+  const portOrder = ["海南端口", "深圳端口"].filter(label => port.some(x => x.label === label));
+  const topPorts = [...portOrder, ...port.filter(x => !portOrder.includes(x.label)).sort((a, b) => b.value - a.value).map(x => x.label)];
   chart("portDailyChart", "line", dates, topPorts.map((label, i) => {
-    const list = localFiltered.filter(r => `${r[cols["端口ID"]] || "未填写"}｜${r[cols["媒体端口"]] || "未填写"}` === label);
+    const list = localFiltered.filter(r => rowPortRegion(r) === label);
     return { label, data: dailyFor(list), borderColor: [palette.blue, palette.green][i], backgroundColor: "rgba(82,119,246,.12)", tension: .25 };
   }));
-  chart("portShareChart", "doughnut", port.map(x => x.label), [{ data: port.map(x => x.value), backgroundColor: port.map((_, i) => [palette.blue, palette.green, palette.amber, palette.violet, palette.red][i % 5]) }]);
+  const portShare = topPorts.map(label => port.find(x => x.label === label)).filter(Boolean);
+  chart("portShareChart", "doughnut", portShare.map(x => x.label), [{ data: portShare.map(x => x.value), backgroundColor: portShare.map((_, i) => [palette.blue, palette.green, palette.amber, palette.violet, palette.red][i % 5]) }]);
 }
 
 function renderTargetCharts(bizId = "targetBusinessChart", teamId = "targetTeamChart", personId = "targetPersonChart") {
