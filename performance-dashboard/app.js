@@ -62,7 +62,14 @@ function dateObj(s) { return new Date(`${s}T00:00:00`); }
 function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 function normalizeDateValue(value) {
   if (!value) return "";
-  if (value instanceof Date && !Number.isNaN(value.getTime())) return dateStr(value);
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const d = new Date(value.getTime());
+    // SheetJS can materialize Excel date-only cells as the previous day at 16:00
+    // in some time zones. These source files are daily snapshots, so normalize
+    // afternoon timestamp-only dates forward to the intended Excel date.
+    if (d.getHours() >= 12 && d.getMinutes() === 0 && d.getSeconds() === 0) d.setDate(d.getDate() + 1);
+    return dateStr(d);
+  }
   if (typeof value === "number" && Number.isFinite(value)) {
     const excelEpoch = new Date(Date.UTC(1899, 11, 30));
     const d = new Date(excelEpoch.getTime() + value * 86400000);
@@ -76,7 +83,9 @@ function normalizeDateValue(value) {
     return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
   }
   const d = new Date(text);
-  return Number.isNaN(d.getTime()) ? text.slice(0, 10) : dateStr(d);
+  if (Number.isNaN(d.getTime())) return text.slice(0, 10);
+  if (text.includes("T") && d.getHours() >= 12 && d.getMinutes() === 0 && d.getSeconds() === 0) d.setDate(d.getDate() + 1);
+  return dateStr(d);
 }
 function dataDateMin(list = allRows) { return [...new Set(list.map(r => r[cols.date]).filter(Boolean))].sort()[0] || meta.dateMin; }
 function dataDateMax(list = allRows) {
@@ -260,8 +269,27 @@ function uploadedRecords() {
       .filter(Boolean);
   });
 }
+function recordKey(row) {
+  return [
+    row[cols.date],
+    row[cols["账户ID"]],
+    row[cols["广告主主体"]],
+    row[cols["商机名称"]],
+    row[cols["商务"]],
+    row[cols["媒体端口"]],
+    row[cols["非赠款消耗"]],
+    row[cols["总消耗"]]
+  ].map(v => `${v ?? ""}`).join("|");
+}
 function rebuildAllRows() {
-  allRows = [...baseRows, ...uploadedRecords()];
+  const seen = new Set();
+  allRows = [];
+  for (const row of [...baseRows, ...uploadedRecords()]) {
+    const key = recordKey(row);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    allRows.push(row);
+  }
 }
 function rowValue(row, columns, name) {
   if (Array.isArray(row)) return row[columns.indexOf(name)] || "";
