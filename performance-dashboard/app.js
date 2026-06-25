@@ -104,6 +104,12 @@ function projectOptions(current = "") {
 function projectDatalistId(key) {
   return `project-options-${`${key}`.replace(/[^\w\u4e00-\u9fa5-]/g, "-")}`;
 }
+function portRegion(portId) {
+  const port = `${portId || ""}`.trim();
+  if (["85615476348", "1740032442332232"].includes(port)) return "深圳端口";
+  if (["1740118613345288", "1816320944718987", "1818671124422667"].includes(port)) return "海南端口";
+  return "";
+}
 function uploadHistory() { return JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]"); }
 function setUploadHistory(v) { localStorage.setItem(uploadHistoryKey, JSON.stringify(v)); }
 function relationLookup() {
@@ -137,7 +143,8 @@ function uploadedRecordFromObject(row) {
     "季度": `Q${Math.floor(d.getMonth() / 3) + 1}`,
     "归属类别": belong,
     "客户类型": customerType,
-    "项目": project
+    "项目": project,
+    "端口归属": row["端口归属"] || row["端口"] || portRegion(row["端口ID"])
   };
   return meta.columns.map(name => {
     const value = derived[name] ?? row[name] ?? "";
