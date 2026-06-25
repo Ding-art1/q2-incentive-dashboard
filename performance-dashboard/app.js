@@ -43,7 +43,8 @@ const salesTeams = {
   "魏筱宇": "销售二组"
 };
 let charts = {};
-const allRows = payload.records;
+const baseRows = payload.records;
+let allRows = baseRows;
 let currentUser = null;
 let rows = allRows;
 let filtered = rows;
@@ -59,6 +60,25 @@ function fmtWan(v) { return wanFmt.format((v || 0) / 10000); }
 function fmtPct(a, b) { return b ? `${pctFmt.format(a / b * 100)}%` : "-"; }
 function dateObj(s) { return new Date(`${s}T00:00:00`); }
 function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
+function normalizeDateValue(value) {
+  if (!value) return "";
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return dateStr(value);
+  const text = `${value}`.trim();
+  if (!text) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+  if (/^\d{4}\/\d{1,2}\/\d{1,2}$/.test(text)) {
+    const [y, m, d] = text.split("/");
+    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+  }
+  const d = new Date(text);
+  return Number.isNaN(d.getTime()) ? text.slice(0, 10) : dateStr(d);
+}
+function dataDateMin(list = allRows) { return [...new Set(list.map(r => r[cols.date]).filter(Boolean))].sort()[0] || meta.dateMin; }
+function dataDateMax(list = allRows) {
+  const dates = [...new Set(list.map(r => r[cols.date]).filter(Boolean))].sort();
+  return dates[dates.length - 1] || meta.dateMax;
+}
+function dataMonths(list = allRows) { return [...new Set(list.map(r => r[cols.monthKey]).filter(Boolean))].sort(); }
 function sum(list, idx = cols["非赠款消耗"]) { return list.reduce((acc, row) => acc + Number(row[idx] || 0), 0); }
 function esc(v) { return `${v ?? ""}`.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch])); }
 function monthOf(date) { return date.slice(0, 7); }
@@ -85,6 +105,56 @@ function projectOptions(current = "") {
 }
 function uploadHistory() { return JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]"); }
 function setUploadHistory(v) { localStorage.setItem(uploadHistoryKey, JSON.stringify(v)); }
+function relationLookup() {
+  const relationCols = Object.fromEntries(meta.relationColumns.map((name, i) => [name, i]));
+  const map = new Map();
+  for (const row of payload.relations || []) {
+    map.set(`${row[relationCols["商机名称"]]}|${row[relationCols["广告主主体"]]}`, {
+      belong: row[relationCols["直客or渠道"]] || "",
+      project: row[relationCols["项目"]] || ""
+    });
+  }
+  return map;
+}
+const relationMap = relationLookup();
+function uploadedRecordFromObject(row) {
+  const date = normalizeDateValue(row["date"] || row["日期"]);
+  if (!date) return null;
+  const d = dateObj(date);
+  const monthKey = date.slice(0, 7);
+  const opportunity = row["商机名称"] || "";
+  const subject = row["广告主主体"] || "";
+  const relation = relationMap.get(`${opportunity}|${subject}`) || {};
+  const belong = row["归属类别"] || row["直客or渠道"] || relation.belong || "";
+  const customerType = row["客户类型"] || (belong === "渠道推荐" || `${belong}`.includes("渠道") ? "渠道" : "直签");
+  const project = row["项目"] || relation.project || opportunity || "";
+  const derived = {
+    date,
+    monthKey,
+    "日期": date,
+    "月份": `M${Number(date.slice(5, 7))}`,
+    "季度": `Q${Math.floor(d.getMonth() / 3) + 1}`,
+    "归属类别": belong,
+    "客户类型": customerType,
+    "项目": project
+  };
+  return meta.columns.map(name => {
+    const value = derived[name] ?? row[name] ?? "";
+    return ["总消耗", "非赠款消耗", "赠款消耗"].includes(name) ? Number(value || 0) : value;
+  });
+}
+function uploadedRecords() {
+  return uploadHistory().flatMap(item => {
+    const columns = item.columns || [];
+    return (item.rows || [])
+      .map(values => Object.fromEntries(columns.map((col, i) => [col, values[i]])))
+      .map(uploadedRecordFromObject)
+      .filter(Boolean);
+  });
+}
+function rebuildAllRows() {
+  allRows = [...baseRows, ...uploadedRecords()];
+}
 function rowValue(row, columns, name) {
   if (Array.isArray(row)) return row[columns.indexOf(name)] || "";
   return row[name] || "";
@@ -136,6 +206,7 @@ function showLogin() {
 }
 function applyAuth(user) {
   currentUser = user;
+  rebuildAllRows();
   rows = scopedRowsFor(user);
   filtered = rows;
   document.body.classList.remove("auth-locked");
@@ -241,8 +312,8 @@ function renderRankList(id, items, limit = 15) {
 }
 
 function applyFilters() {
-  const s = $("startDate").value || meta.dateMin;
-  const e = $("endDate").value || meta.dateMax;
+  const s = $("startDate").value || dataDateMin(rows);
+  const e = $("endDate").value || dataDateMax(rows);
   const biz = $("bizFilter").value;
   const type = $("typeFilter").value;
   filtered = rows.filter(row => row[cols.date] >= s && row[cols.date] <= e && (!biz || row[cols["合作模式-DOSS"]] === biz) && (!type || row[cols["客户类型"]] === type));
@@ -251,7 +322,7 @@ function applyFilters() {
 }
 
 function renderTime() {
-  const end = $("endDate").value || meta.dateMax;
+  const end = $("endDate").value || dataDateMax(rows);
   const d = dateObj(end);
   const year = d.getFullYear();
   const month = d.getMonth();
@@ -270,8 +341,8 @@ function renderTime() {
 
 function renderDashboard() {
   renderTime();
-  const end = $("endDate").value || meta.dateMax;
-  const start = $("startDate").value || meta.dateMin;
+  const end = $("endDate").value || dataDateMax(rows);
+  const start = $("startDate").value || dataDateMin(rows);
   const y = prevDate(end, 1);
   const prev = prevDate(y, 1);
   const yRows = rows.filter(r => r[cols.date] === y && filtered.includes(r));
@@ -320,7 +391,7 @@ function renderDashboard() {
 }
 
 function renderTargetCharts(bizId = "targetBusinessChart", teamId = "targetTeamChart", personId = "targetPersonChart") {
-  const month = monthOf($("endDate").value || meta.dateMax);
+  const month = monthOf($("endDate").value || dataDateMax(rows));
   const draw = (id, level, limit = 12) => {
     if (!$(id)) return;
     const data = targetProgressRows(month, level).slice(0, limit);
@@ -422,7 +493,7 @@ function avgDaily(list) {
 }
 
 function actualRowsForTarget(month, level, name) {
-  const base = rows.filter(r => r[cols.monthKey] === month && r[cols.date] <= ($("endDate").value || meta.dateMax));
+  const base = rows.filter(r => r[cols.monthKey] === month && r[cols.date] <= ($("endDate").value || dataDateMax(rows)));
   if (level === "business") return bizRows(base, name);
   if (level === "team") return localPushRows(base).filter(r => salesTeam(r) === name);
   if (level === "person") return localPushRows(base).filter(r => r[cols["商务"]] === name);
@@ -432,7 +503,7 @@ function actualRowsForTarget(month, level, name) {
 function actualNewForTarget(month, level, name) {
   const labels = newLabels();
   const counted = new Set();
-  for (const entry of baseNewEntriesForMonth(month, $("endDate").value || meta.dateMax)) {
+  for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(rows))) {
     const label = effectiveNewLabel(entry, labels);
     if (!entry.opportunity || !isFreshCustomerLabel(label) || counted.has(entry.opportunity)) continue;
     const match = level === "business"
@@ -480,7 +551,7 @@ function freshCustomerCounts(month) {
   const labels = newLabels();
   const counted = new Set();
   const result = { recharge: 0, operate: 0, total: 0 };
-  for (const entry of baseNewEntriesForMonth(month, $("endDate").value || meta.dateMax)) {
+  for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(rows))) {
     const label = effectiveNewLabel(entry, labels);
     if (!entry.opportunity || !isFreshCustomerLabel(label) || counted.has(entry.opportunity)) continue;
     counted.add(entry.opportunity);
@@ -518,7 +589,7 @@ function targetProgressRows(month, level) {
 }
 
 function renderReports() {
-  const end = $("endDate").value || meta.dateMax;
+  const end = $("endDate").value || dataDateMax(rows);
   const y = prevDate(end, 1);
   $("dailyTitle").textContent = `${y} 数据通报`;
   $("dailySubtitle").textContent = `数据截至 ${end}，所有消耗口径为非赠款`;
@@ -541,14 +612,14 @@ function teamCompare(rows, monthRows) {
   return ["销售一组", "销售二组"].map(team => {
     const day = sum(rows.filter(r => salesTeam(r) === team));
     const month = sum(monthRows.filter(r => salesTeam(r) === team));
-    const target = targetFor(monthOf(monthRows[0]?.[cols.date] || $("endDate").value || meta.dateMax), "team", team).spend || 0;
+    const target = targetFor(monthOf(monthRows[0]?.[cols.date] || $("endDate").value || dataDateMax(rows)), "team", team).spend || 0;
     return `<div class="teamLine"><span>${team}</span><b>昨日 ${fmtWan(day)}w</b><b>M月 ${fmtWan(month)}w</b><b>完成 ${fmtPct(month, target)}</b></div>`;
   }).join("");
 }
 function report(id, dayRows, monthRows, name, target, options = {}) {
   const topDirect = group(dayRows.filter(r => r[cols["客户类型"]] === "直签"), r => r[cols["项目"]] || r[cols["商机名称"]]).sort((a, b) => b.value - a.value).slice(0, 3);
   const topChannel = group(dayRows.filter(r => r[cols["客户类型"]] === "渠道"), r => r[cols["项目"]] || r[cols["商机名称"]]).sort((a, b) => b.value - a.value).slice(0, 3);
-  const date = dayRows[0]?.[cols.date] || $("endDate").value || meta.dateMax;
+  const date = dayRows[0]?.[cols.date] || $("endDate").value || dataDateMax(rows);
   const timePct = monthProgressFor(date);
   const completePct = target ? sum(monthRows) / target * 100 : 0;
   const diff = completePct - timePct;
@@ -640,7 +711,7 @@ function saveTarget() {
 function renderTargets() {
   if (!$("targetTable")) return;
   renderTargetCharts();
-  const month = $("targetMonth").value || monthOf($("endDate").value || meta.dateMax);
+  const month = $("targetMonth").value || monthOf($("endDate").value || dataDateMax(rows));
   const levelName = { business: "业务", team: "销售组", person: "商务个人" };
   const body = targetRows(month).map(row => {
     const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name));
@@ -695,9 +766,10 @@ function firstSpendMonthForProject(project, year) {
   return hit ? hit[cols["月份"]] : "-";
 }
 function renderCustomers() {
-  const end = $("endDate").value || meta.dateMax;
+  const end = $("endDate").value || dataDateMax(rows);
   const curMonth = monthOf(end);
-  const prevMonth = meta.months[meta.months.indexOf(curMonth) - 1] || meta.months[0];
+  const months = dataMonths(rows);
+  const prevMonth = months[months.indexOf(curMonth) - 1] || months[0] || curMonth;
   const day = dateObj(end).getDate();
   const year = curMonth.slice(0, 4);
   const currentRows = customerFilterRowsForMonth(curMonth, end);
@@ -774,7 +846,7 @@ function renderCustomerLookup() {
     $("customerLookupTable").innerHTML = `<tbody><tr><td class="empty">输入主体或商机名称后查询归属关系和当月消耗</td></tr></tbody>`;
     return;
   }
-  const end = $("endDate").value || meta.dateMax;
+  const end = $("endDate").value || dataDateMax(rows);
   const month = monthOf(end);
   const monthRows = customerFilterRowsForMonth(month, end);
   const allMatches = localPushRows(rows).filter(r => `${r[cols["广告主主体"]]}`.includes(keyword) || `${r[cols["商机名称"]]}`.includes(keyword) || `${r[cols["项目"]]}`.includes(keyword));
@@ -925,9 +997,10 @@ function baseNewEntriesForMonth(month, endDate) {
 }
 
 function renderChanges() {
-  const endDate = $("endDate").value || meta.dateMax;
+  const endDate = $("endDate").value || dataDateMax(rows);
   const endMonth = monthOf(endDate);
-  const prevMonth = meta.months[meta.months.indexOf(endMonth) - 1] || meta.months[0];
+  const months = dataMonths(rows);
+  const prevMonth = months[months.indexOf(endMonth) - 1] || months[0] || endMonth;
   const monthStart = `${endMonth}-01`;
   const elapsedDays = dateObj(endDate).getDate();
   const cur = rows.filter(r => r[cols.monthKey] === endMonth && r[cols.date] >= monthStart && r[cols.date] <= endDate);
@@ -1061,12 +1134,15 @@ function downloadUploadedHistory() {
 function renderAll() { renderDashboard(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
 
 function init() {
-  $("dataMeta").textContent = `数据范围 ${meta.dateMin} 至 ${meta.dateMax}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
-  $("startDate").value = meta.dateMax.slice(0, 7) + "-01";
-  $("endDate").value = meta.dateMax;
+  const minDate = dataDateMin(rows);
+  const maxDate = dataDateMax(rows);
+  const months = dataMonths(rows);
+  $("dataMeta").textContent = `数据范围 ${minDate} 至 ${maxDate}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
+  $("startDate").value = maxDate.slice(0, 7) + "-01";
+  $("endDate").value = maxDate;
   for (const biz of [...new Set(rows.map(r => r[cols["合作模式-DOSS"]]))]) $("bizFilter").insertAdjacentHTML("beforeend", `<option>${esc(biz)}</option>`);
-  $("targetMonth").innerHTML = meta.months.map(month => `<option>${esc(month)}</option>`).join("");
-  $("targetMonth").value = monthOf(meta.dateMax);
+  $("targetMonth").innerHTML = months.map(month => `<option>${esc(month)}</option>`).join("");
+  $("targetMonth").value = monthOf(maxDate);
   refreshTargetNameOptions();
   document.querySelectorAll(".nav[data-panel]").forEach(btn => btn.onclick = () => {
     if (btn.classList.contains("adminOnly") && !isAdmin()) return;
@@ -1076,7 +1152,7 @@ function init() {
     $(btn.dataset.panel).classList.add("active");
   });
   $("applyFilters").onclick = applyFilters;
-  $("resetFilters").onclick = () => { $("startDate").value = meta.dateMax.slice(0, 7) + "-01"; $("endDate").value = meta.dateMax; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
+  $("resetFilters").onclick = () => { const max = dataDateMax(rows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
   $("tableSearch").oninput = () => { page = 1; renderDetails(); };
   $("prevPage").onclick = () => { page--; renderDetails(); };
   $("nextPage").onclick = () => { page++; renderDetails(); };
@@ -1116,7 +1192,13 @@ function init() {
       rows: bodyRows
     });
     setUploadHistory(history.slice(0, 20));
-    renderChanges();
+    rebuildAllRows();
+    rows = scopedRowsFor(currentUser);
+    const max = dataDateMax(rows);
+    $("startDate").value = max.slice(0, 7) + "-01";
+    $("endDate").value = max;
+    $("dataMeta").textContent = `数据范围 ${dataDateMin(rows)} 至 ${max}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
+    applyFilters();
   };
   applyFilters();
 }
