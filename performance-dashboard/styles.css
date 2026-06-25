@@ -361,9 +361,18 @@ canvas { width: 100% !important; height: 280px !important; }
   background: linear-gradient(115deg, var(--navy), var(--navy2));
   box-shadow: 0 16px 34px rgba(17, 24, 39, .14);
   margin-bottom: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
 }
 .reportHero h3 { margin: 0; font-size: 26px; }
 .reportHero p { color: rgba(255,255,255,.86); }
+.reportHero strong {
+  font-size: 36px;
+  line-height: 1;
+  white-space: nowrap;
+}
 .reportGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
 .reportCard {
   background: #fff;
@@ -377,6 +386,181 @@ canvas { width: 100% !important; height: 280px !important; }
 .reportCard p { color: var(--ink); margin: 8px 0; }
 .reportCard h4 { margin: 0 0 8px; font-size: 16px; }
 .reportCard hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+.dailySection {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 14px;
+}
+.dailySection h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+.dailyBizGrid,
+.dailyTeamGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.dailyTeamGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 12px;
+}
+.dailyBizCard {
+  padding: 16px;
+  border: 1px solid #dbe5f4;
+  border-left: 5px solid var(--blue);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff, #f7fbff);
+}
+.dailyBizCard.recharge { border-left-color: var(--green); background: linear-gradient(135deg, #ffffff, #f3fcf7); }
+.dailyBizCard.operate { border-left-color: var(--amber); background: linear-gradient(135deg, #ffffff, #fff9eb); }
+.dailyBizCard > span {
+  color: var(--muted);
+  font-weight: 800;
+}
+.dailyBizCard > strong {
+  display: block;
+  margin: 8px 0;
+  color: var(--blue);
+  font-size: 30px;
+  line-height: 1.1;
+}
+.dailyBizCard.recharge > strong { color: var(--green); }
+.dailyBizCard.operate > strong { color: var(--amber); }
+.dailyBizCard > em {
+  display: inline-block;
+  margin-top: 8px;
+  font-style: normal;
+}
+.dailyMeta {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 13px;
+}
+.dailyMeta b { color: var(--ink); }
+.dailyMeta em { font-style: normal; }
+.dailyDuoBar {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.dailyDuoBar p {
+  display: grid;
+  grid-template-columns: 42px 1fr 52px;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.dailyDuoBar i {
+  height: 9px;
+  border-radius: 999px;
+  background: #e9eef7;
+  overflow: hidden;
+}
+.dailyDuoBar i b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #59a5ff);
+}
+.dailyDuoBar p:nth-child(2) i b { background: #95a0b4; }
+.dailyDuoBar strong { text-align: right; color: var(--ink); }
+.dailyTwoCol {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.dailyPanel {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fbfdff;
+}
+.dailyPanel h4 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+.dailyNewList {
+  display: grid;
+  gap: 8px;
+}
+.dailyNewList p {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px 72px;
+  gap: 8px;
+  align-items: center;
+  margin: 0;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #eef2f8;
+}
+.dailyNewList b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dailyNewList span,
+.dailyNewList em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+.dailyRankList {
+  display: grid;
+  gap: 9px;
+}
+.dailyRankList p {
+  display: grid;
+  grid-template-columns: 28px minmax(120px, 1fr) minmax(120px, 220px) 70px;
+  gap: 10px;
+  align-items: center;
+  margin: 0;
+}
+.dailyRankList span {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--blue);
+  font-size: 12px;
+  font-weight: 800;
+}
+.dailyRankList b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dailyRankList i {
+  height: 10px;
+  border-radius: 999px;
+  background: #edf2fb;
+  overflow: hidden;
+}
+.dailyRankList i em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #58a8ff);
+}
+.dailyRankList strong {
+  text-align: right;
+}
+.empty.small {
+  padding: 14px;
+  font-size: 13px;
+}
 .progressCompare {
   display: grid;
   gap: 10px;
@@ -511,13 +695,14 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   .sidebar { position: static; height: auto; display: flex; gap: 8px; overflow-x: auto; }
   .sidebar h1 { display: none; }
   .nav { width: auto; white-space: nowrap; }
-  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr 1fr; }
+  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr 1fr; }
   .publicTop, .publicGoalGrid, .publicRankGrid { grid-template-columns: 1fr; }
   .miniChartGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 }
 @media (max-width: 680px) {
   main { padding: 16px; }
-  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr; }
+  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .lookupTools { grid-template-columns: 1fr; }
+  .reportHero { align-items: flex-start; flex-direction: column; }
   .publicBoard { padding: 12px; }
   .miniChartGrid { grid-template-columns: 1fr; }
 }

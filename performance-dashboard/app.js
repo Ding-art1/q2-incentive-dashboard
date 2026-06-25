@@ -753,15 +753,137 @@ function targetChartLabel(row) {
 
 function renderReports() {
   const end = $("endDate").value || dataDateMax(rows);
-  const y = prevDate(end, 1);
+  const y = end;
   $("dailyTitle").textContent = `${y} 数据通报`;
-  $("dailySubtitle").textContent = `数据截至 ${end}，所有消耗口径为非赠款`;
-  const yRows = rows.filter(r => r[cols.date] === y);
+  $("dailySubtitle").textContent = `所有消耗口径为本地推非赠款，目标进度按当月累计计算`;
+  const yRows = localPushRows(rows.filter(r => r[cols.date] === y));
   const m = monthOf(y);
-  const mRows = rows.filter(r => r[cols.monthKey] === m && r[cols.date] <= y);
-  report("localReport", bizRows(yRows, "本地推"), bizRows(mRows, "本地推"), "本地推", targetFor(m, "business", "本地推").spend);
-  report("rechargeReport", bizRows(yRows, "代充值"), bizRows(mRows, "代充值"), "代充值", targetFor(m, "business", "代充值").spend, { showTeam: true });
-  report("operateReport", bizRows(yRows, "代运营"), bizRows(mRows, "代运营"), "代运营", targetFor(m, "business", "代运营").spend);
+  const mRows = localPushRows(rows.filter(r => r[cols.monthKey] === m && r[cols.date] <= y));
+  $("dailyHeroTotal").textContent = `${fmtWan(sum(yRows))}w`;
+  renderDailyBusinessCards(yRows, mRows, m, y);
+  renderDailyNewItems(m, y);
+  renderDailyTeams(yRows, mRows, m, y);
+  renderDailyRanks(yRows);
+  renderDailyVolatility(y);
+}
+
+function progressGap(actual, target, date) {
+  const complete = target ? actual / target * 100 : 0;
+  const time = monthProgressFor(date);
+  return { complete, time, gap: complete - time };
+}
+function dailyProgressCard({ title, value, target, actual, tone, date }) {
+  const stat = progressGap(actual, target, date);
+  const gapText = stat.gap >= 0 ? `领先时间 ${pctFmt.format(stat.gap)}pct` : `落后时间 ${pctFmt.format(Math.abs(stat.gap))}pct`;
+  return `<article class="dailyBizCard ${tone}">
+    <span>${esc(title)}</span>
+    <strong>${fmtWan(value)}w</strong>
+    <div class="dailyMeta"><b>月累 ${fmtWan(actual)}w</b><em>目标 ${fmtWan(target)}w</em></div>
+    <div class="dailyDuoBar">
+      <p><span>完成</span><i><b style="width:${Math.min(100, Math.max(0, stat.complete))}%"></b></i><strong>${pctFmt.format(stat.complete)}%</strong></p>
+      <p><span>时间</span><i><b style="width:${Math.min(100, Math.max(0, stat.time))}%"></b></i><strong>${pctFmt.format(stat.time)}%</strong></p>
+    </div>
+    <em class="${stat.gap >= 0 ? "good" : "bad"}">${gapText}</em>
+  </article>`;
+}
+function renderDailyBusinessCards(yRows, mRows, month, date) {
+  const configs = [
+    { name: "本地推", tone: "local" },
+    { name: "代充值", tone: "recharge" },
+    { name: "代运营", tone: "operate" }
+  ];
+  $("dailyBizCards").innerHTML = configs.map(item => {
+    const dayList = bizRows(yRows, item.name);
+    const monthList = bizRows(mRows, item.name);
+    const target = targetFor(month, "business", item.name).spend;
+    return dailyProgressCard({ title: `昨日${item.name}消耗`, value: sum(dayList), actual: sum(monthList), target, tone: item.tone, date });
+  }).join("");
+}
+function entryFirstDate(entry, sourceRows = rows) {
+  const list = sourceRows.filter(r => {
+    if (`${entry.key || ""}`.startsWith("channelSubject|")) {
+      return r[cols["商机名称"]] === entry.opportunity && r[cols["广告主主体"]] === entry.subject;
+    }
+    return r[cols["商机名称"]] === entry.opportunity;
+  }).map(r => r[cols.date]).filter(Boolean).sort();
+  return list[0] || "";
+}
+function renderDailyNewItems(month, date) {
+  const labels = newLabels();
+  const projects = newProjects();
+  const items = baseNewEntriesForMonth(month, date)
+    .map(normalizeNewEntry)
+    .filter(entry => entryFirstDate(entry) === date)
+    .map(entry => ({ ...entry, label: effectiveNewLabel(entry, labels), projectName: projects[entry.labelKey] || entry.project || "未填写" }));
+  const direct = items.filter(x => x.label === "代充值新客户" || x.label === "代运营新客户" || (x.customerType === "直签" && x.label !== "存量商机"));
+  const channel = items.filter(x => x.label === "代充值新渠道" || x.label === "历史渠道新增主体" || x.kind.includes("渠道"));
+  $("dailyNewDirect").innerHTML = dailyNewList(direct, "直签");
+  $("dailyNewChannel").innerHTML = dailyNewList(channel, "渠道");
+}
+function dailyNewList(list, fallbackType) {
+  if (!list.length) return `<p class="empty small">昨日暂无新增${fallbackType}</p>`;
+  return `<div class="dailyNewList">${list.slice(0, 8).map(x => `<p><b>${esc(x.projectName || x.opportunity)}</b><span>${esc(x.label || x.kind)}</span><em>${esc(x.sales || "-")}</em></p>`).join("")}</div>`;
+}
+function targetProgressForScope(month, level, name, sourceRows, date) {
+  const targets = targetRows(month).filter(row => row.level === level && row.name === name);
+  const target = targets.reduce((acc, row) => acc + Number(row.spend || 0), 0);
+  const actual = targets.reduce((acc, row) => acc + sum(actualRowsForTarget(row.month, row.level, row.name, sourceRows, targetBusiness(row))), 0);
+  const fallbackActual = level === "team"
+    ? sum(sourceRows.filter(r => salesTeam(r) === name))
+    : sum(sourceRows.filter(r => r[cols["商务"]] === name));
+  return progressGap(targets.length ? actual : fallbackActual, target, date);
+}
+function renderDailyTeams(yRows, mRows, month, date) {
+  const teams = ["销售一组", "销售二组"];
+  $("dailyTeamCards").innerHTML = teams.map((team, i) => {
+    const day = sum(yRows.filter(r => salesTeam(r) === team));
+    const targetRowsForTeam = targetRows(month).filter(row => row.level === "team" && row.name === team);
+    const target = targetRowsForTeam.reduce((acc, row) => acc + Number(row.spend || 0), 0);
+    const actual = targetRowsForTeam.length
+      ? targetRowsForTeam.reduce((acc, row) => acc + sum(actualRowsForTarget(row.month, row.level, row.name, rows, targetBusiness(row))), 0)
+      : sum(mRows.filter(r => salesTeam(r) === team));
+    return dailyProgressCard({ title: `${team}昨日消耗`, value: day, actual, target, tone: i ? "recharge" : "local", date });
+  }).join("");
+  const sales = [...new Set(mRows.map(r => r[cols["商务"]]).filter(Boolean))].sort((a, b) => `${salesTeams[a] || ""}${a}`.localeCompare(`${salesTeams[b] || ""}${b}`, "zh-CN"));
+  const body = sales.map(name => {
+    const day = sum(yRows.filter(r => r[cols["商务"]] === name));
+    const targetRowsForSales = targetRows(month).filter(row => row.level === "person" && row.name === name);
+    const target = targetRowsForSales.reduce((acc, row) => acc + Number(row.spend || 0), 0);
+    const actual = targetRowsForSales.length
+      ? targetRowsForSales.reduce((acc, row) => acc + sum(actualRowsForTarget(row.month, row.level, row.name, rows, targetBusiness(row))), 0)
+      : sum(mRows.filter(r => r[cols["商务"]] === name));
+    const stat = progressGap(actual, target, date);
+    return `<tr><td>${esc(salesTeams[name] || "未分组")}</td><td>${esc(name)}</td><td class="num">${fmtWan(day)}w</td><td class="num">${fmtWan(actual)}w</td><td class="num">${fmtWan(target)}w</td><td class="num">${pctFmt.format(stat.complete)}%</td><td class="num ${stat.gap >= 0 ? "good" : "bad"}">${stat.gap >= 0 ? "+" : "-"}${pctFmt.format(Math.abs(stat.gap))}pct</td></tr>`;
+  }).join("");
+  $("dailySalesTable").innerHTML = `<thead><tr><th>商务组</th><th>商务</th><th class="num">昨日消耗</th><th class="num">月累消耗</th><th class="num">消耗目标</th><th class="num">目标完成</th><th class="num">与时间GAP</th></tr></thead><tbody>${body || `<tr><td colspan="7" class="empty">暂无商务数据</td></tr>`}</tbody>`;
+}
+function renderDailyRanks(yRows) {
+  const localTop = group(bizRows(yRows, "本地推"), r => r[cols["项目"]] || r[cols["商机名称"]]).sort((a, b) => b.value - a.value).slice(0, 5);
+  const operateTop = group(bizRows(yRows, "代运营"), r => r[cols["项目"]] || r[cols["商机名称"]]).sort((a, b) => b.value - a.value).slice(0, 5);
+  $("dailyLocalTop").innerHTML = dailyRankList(localTop);
+  $("dailyOperateTop").innerHTML = dailyRankList(operateTop);
+}
+function dailyRankList(items) {
+  if (!items.length) return `<p class="empty small">暂无数据</p>`;
+  const max = Math.max(...items.map(x => x.value), 1);
+  return `<div class="dailyRankList">${items.map((x, i) => `<p><span>${i + 1}</span><b>${esc(x.label)}</b><i><em style="width:${x.value / max * 100}%"></em></i><strong>${fmtWan(x.value)}w</strong></p>`).join("")}</div>`;
+}
+function renderDailyVolatility(date) {
+  const dates = [...new Set(localPushRows(rows).map(r => r[cols.date]).filter(d => d <= date))].sort().slice(-5);
+  const source = localPushRows(rows).filter(r => dates.includes(r[cols.date]) && (isDirectRow(r) || isChannelRow(r)));
+  const keys = [...new Set(source.map(r => `${isChannelRow(r) ? "渠道" : "直签"}|${r[cols["商机名称"]] || r[cols["项目"]]}`).filter(Boolean))];
+  const items = keys.map(key => {
+    const [type, name] = key.split("|");
+    const values = dates.map(day => sum(source.filter(r => r[cols.date] === day && (r[cols["商机名称"]] || r[cols["项目"]]) === name)));
+    let best = { value: 0, from: 0, to: 0, day: "" };
+    for (let i = 1; i < values.length; i++) {
+      const diff = values[i] - values[i - 1];
+      const rate = values[i - 1] ? diff / values[i - 1] * 100 : (values[i] ? 100 : 0);
+      if (Math.abs(rate) > Math.abs(best.value)) best = { value: rate, from: values[i - 1], to: values[i], day: dates[i] };
+    }
+    return { type, name, ...best };
+  }).filter(x => x.to || x.from).sort((a, b) => Math.abs(b.value) - Math.abs(a.value)).slice(0, 8);
+  $("dailyVolatilityTable").innerHTML = `<thead><tr><th>类型</th><th>客户/渠道</th><th>波动日期</th><th class="num">前一日消耗</th><th class="num">当日消耗</th><th class="num">环比波动</th></tr></thead><tbody>${items.map(x => `<tr><td>${esc(x.type)}</td><td>${esc(x.name)}</td><td>${esc(x.day)}</td><td class="num">${fmtMoney(x.from)}</td><td class="num">${fmtMoney(x.to)}</td><td class="num ${x.value >= 0 ? "good" : "bad"}">${x.value >= 0 ? "+" : ""}${pctFmt.format(x.value)}%</td></tr>`).join("") || `<tr><td colspan="6" class="empty">近5日暂无明显波动数据</td></tr>`}</tbody>`;
 }
 function monthProgressFor(date) {
   const d = dateObj(date);

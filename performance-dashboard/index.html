@@ -153,14 +153,39 @@
 
       <section id="daily" class="panel">
         <section class="reportHero">
-          <h3 id="dailyTitle">昨日数据通报</h3>
-          <p id="dailySubtitle"></p>
+          <div>
+            <h3 id="dailyTitle">昨日数据通报</h3>
+            <p id="dailySubtitle"></p>
+          </div>
+          <strong id="dailyHeroTotal">0w</strong>
         </section>
-        <div class="reportGrid">
-          <article class="reportCard local"><h3>昨日本地推数据通报</h3><div id="localReport"></div></article>
-          <article class="reportCard recharge"><h3>昨日代充值数据通报</h3><div id="rechargeReport"></div></article>
-          <article class="reportCard operate"><h3>昨日代运营数据通报</h3><div id="operateReport"></div></article>
-        </div>
+        <section class="dailySection">
+          <h3>业务核心进度</h3>
+          <div class="dailyBizGrid" id="dailyBizCards"></div>
+        </section>
+        <section class="dailySection">
+          <h3>昨日新增</h3>
+          <div class="dailyTwoCol">
+            <article class="dailyPanel"><h4>新增直签客户</h4><div id="dailyNewDirect"></div></article>
+            <article class="dailyPanel"><h4>新增渠道 / 渠道主体</h4><div id="dailyNewChannel"></div></article>
+          </div>
+        </section>
+        <section class="dailySection">
+          <h3>销售组与商务目标进度</h3>
+          <div class="dailyTeamGrid" id="dailyTeamCards"></div>
+          <div class="tableWrap compact"><table id="dailySalesTable"></table></div>
+        </section>
+        <section class="dailySection">
+          <h3>昨日贡献排行</h3>
+          <div class="dailyTwoCol">
+            <article class="dailyPanel"><h4>本地推消耗贡献 TOP5</h4><div id="dailyLocalTop"></div></article>
+            <article class="dailyPanel"><h4>代运营消耗贡献 TOP5</h4><div id="dailyOperateTop"></div></article>
+          </div>
+        </section>
+        <section class="dailySection">
+          <h3>近5日日耗波动较大客户 / 渠道</h3>
+          <div class="tableWrap compact"><table id="dailyVolatilityTable"></table></div>
+        </section>
       </section>
 
       <section id="details" class="panel">
