@@ -299,6 +299,17 @@ function periodMonths(list) {
 function targetForPeriod(name, list) {
   return periodMonths(list).reduce((acc, month) => acc + (targetFor(month, "business", name).spend || 0), 0);
 }
+function scopedDashboardTargetForPeriod(name, list) {
+  if (!document.body.classList.contains("my-dashboard-active")) return targetForPeriod(name, list);
+  const months = periodMonths(list);
+  if (currentUser?.role === "person") {
+    return months.reduce((acc, month) => acc + (targetFor(month, "person", currentUser.person).spend || 0), 0);
+  }
+  if (currentUser?.role === "team") {
+    return months.reduce((acc, month) => acc + (targetFor(month, "team", currentUser.team).spend || 0), 0);
+  }
+  return targetForPeriod(name, list);
+}
 function startOfWeek(date) {
   const d = dateObj(date);
   const day = d.getDay() || 7;
@@ -376,7 +387,7 @@ function renderDashboard() {
   const operate = bizRows(dashboardFiltered, "代运营");
   const bizMetric = (name, list, cls) => {
     const actual = sum(list);
-    const target = targetForPeriod(name, dashboardFiltered);
+    const target = scopedDashboardTargetForPeriod(name, dashboardFiltered);
     return metric(`${name}实绩`, `${fmtWan(actual)}w`, `目标 ${fmtWan(target)}w｜达成 ${fmtPct(actual, target)}`, cls);
   };
   $("dashboardMetrics").innerHTML = [
