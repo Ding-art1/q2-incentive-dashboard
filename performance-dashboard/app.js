@@ -332,6 +332,16 @@ function applyFilters() {
   page = 1;
   renderAll();
 }
+function filteredFor(list) {
+  const s = $("startDate").value || dataDateMin(list);
+  const e = $("endDate").value || dataDateMax(list);
+  const biz = $("bizFilter").value;
+  const type = $("typeFilter").value;
+  return list.filter(row => row[cols.date] >= s && row[cols.date] <= e && (!biz || row[cols["合作模式-DOSS"]] === biz) && (!type || row[cols["客户类型"]] === type));
+}
+function dashboardSourceRows() {
+  return document.body.classList.contains("my-dashboard-active") ? rows : allRows;
+}
 
 function renderTime() {
   const end = $("endDate").value || dataDateMax(rows);
@@ -353,18 +363,20 @@ function renderTime() {
 
 function renderDashboard() {
   renderTime();
-  const end = $("endDate").value || dataDateMax(rows);
-  const start = $("startDate").value || dataDateMin(rows);
+  const sourceRows = dashboardSourceRows();
+  const dashboardFiltered = filteredFor(sourceRows);
+  const end = $("endDate").value || dataDateMax(sourceRows);
+  const start = $("startDate").value || dataDateMin(sourceRows);
   const y = prevDate(end, 1);
   const prev = prevDate(y, 1);
-  const yRows = rows.filter(r => r[cols.date] === y && filtered.includes(r));
-  const prevRows = rows.filter(r => r[cols.date] === prev && filtered.includes(r));
-  const local = bizRows(filtered, "本地推");
-  const recharge = bizRows(filtered, "代充值");
-  const operate = bizRows(filtered, "代运营");
+  const yRows = sourceRows.filter(r => r[cols.date] === y && dashboardFiltered.includes(r));
+  const prevRows = sourceRows.filter(r => r[cols.date] === prev && dashboardFiltered.includes(r));
+  const local = bizRows(dashboardFiltered, "本地推");
+  const recharge = bizRows(dashboardFiltered, "代充值");
+  const operate = bizRows(dashboardFiltered, "代运营");
   const bizMetric = (name, list, cls) => {
     const actual = sum(list);
-    const target = targetForPeriod(name, filtered);
+    const target = targetForPeriod(name, dashboardFiltered);
     return metric(`${name}实绩`, `${fmtWan(actual)}w`, `目标 ${fmtWan(target)}w｜达成 ${fmtPct(actual, target)}`, cls);
   };
   $("dashboardMetrics").innerHTML = [
@@ -373,8 +385,8 @@ function renderDashboard() {
     bizMetric("代运营", operate, "biz-operate"),
   ].join("");
 
-  renderDailyMetrics(y, prev);
-  const dates = [...new Set(filtered.map(r => r[cols.date]))].sort();
+  renderDailyMetrics(y, prev, sourceRows, dashboardFiltered);
+  const dates = [...new Set(dashboardFiltered.map(r => r[cols.date]))].sort();
   const dailyFor = list => {
     const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
     return dates.map(date => map.get(date) || 0);
@@ -388,11 +400,11 @@ function renderDashboard() {
   renderRankList("yDirectRank", group(yLocalRows.filter(isDirectRow), r => r[cols["项目"]] || r[cols["商机名称"]]), 15);
   renderRankList("yChannelRank", group(yLocalRows.filter(isChannelRow), r => r[cols["项目"]] || r[cols["商机名称"]]), 15);
 
-  renderWeeklyDashboard(start, end);
-  renderOperateDashboard(y, dates, operate);
-  renderRechargeDashboard(y, start, end, dates);
+  renderWeeklyDashboard(start, end, dashboardFiltered);
+  renderOperateDashboard(y, dates, operate, sourceRows, dashboardFiltered);
+  renderRechargeDashboard(y, start, end, dates, sourceRows, dashboardFiltered);
 
-  const localFiltered = localPushRows(filtered);
+  const localFiltered = localPushRows(dashboardFiltered);
   const port = group(localFiltered, rowPortRegion);
   const portOrder = ["海南端口", "深圳端口"].filter(label => port.some(x => x.label === label));
   const topPorts = [...portOrder, ...port.filter(x => !portOrder.includes(x.label)).sort((a, b) => b.value - a.value).map(x => x.label)];
@@ -404,11 +416,11 @@ function renderDashboard() {
   chart("portShareChart", "doughnut", portShare.map(x => x.label), [{ data: portShare.map(x => x.value), backgroundColor: portShare.map((_, i) => [palette.blue, palette.green, palette.amber, palette.violet, palette.red][i % 5]) }]);
 }
 
-function renderTargetCharts(bizId = "targetBusinessChart", teamId = "targetTeamChart", personId = "targetPersonChart") {
+function renderTargetCharts(bizId = "targetBusinessChart", teamId = "targetTeamChart", personId = "targetPersonChart", sourceRows = rows, scopedTargets = true) {
   const month = monthOf($("endDate").value || dataDateMax(rows));
   const draw = (id, level, limit = 12) => {
     if (!$(id)) return;
-    const data = targetProgressRows(month, level).slice(0, limit);
+    const data = targetProgressRows(month, level, sourceRows, scopedTargets).slice(0, limit);
     chart(id, "bar", data.map(x => x.name), [
       { label: "消耗完成率", data: data.map(x => x.spendPct), backgroundColor: palette.blue },
       { label: "新开完成率", data: data.map(x => x.newPct), backgroundColor: palette.green }
@@ -429,9 +441,9 @@ function renderTargetCharts(bizId = "targetBusinessChart", teamId = "targetTeamC
   draw(personId, "person", 15);
 }
 
-function renderDailyMetrics(y, prev) {
-  const yRows = rows.filter(r => r[cols.date] === y && filtered.includes(r));
-  const prevRows = rows.filter(r => r[cols.date] === prev && filtered.includes(r));
+function renderDailyMetrics(y, prev, sourceRows = rows, sourceFiltered = filtered) {
+  const yRows = sourceRows.filter(r => r[cols.date] === y && sourceFiltered.includes(r));
+  const prevRows = sourceRows.filter(r => r[cols.date] === prev && sourceFiltered.includes(r));
   const localY = sum(bizRows(yRows, "本地推"));
   const rechargeY = sum(bizRows(yRows, "代充值"));
   const operateY = sum(bizRows(yRows, "代运营"));
@@ -439,28 +451,28 @@ function renderDailyMetrics(y, prev) {
     metric("昨日本地推消耗", `${fmtWan(localY)}w`, `较前日 ${fmtWan(localY - sum(bizRows(prevRows, "本地推")))}w`, "biz-local"),
     metric("昨日代充值消耗", `${fmtWan(rechargeY)}w`, `较前日 ${fmtWan(rechargeY - sum(bizRows(prevRows, "代充值")))}w`, "biz-recharge"),
     metric("昨日代运营消耗", `${fmtWan(operateY)}w`, `较前日 ${fmtWan(operateY - sum(bizRows(prevRows, "代运营")))}w`, "biz-operate"),
-    metric("当前平均日耗", `${fmtWan(avgDaily(localPushRows(filtered)))}w`, "", "biz-new"),
+    metric("当前平均日耗", `${fmtWan(avgDaily(localPushRows(sourceFiltered)))}w`, "", "biz-new"),
   ].join("");
 }
-function renderWeeklyDashboard(start, end) {
+function renderWeeklyDashboard(start, end, sourceFiltered = filtered) {
   const weekStart = startOfWeek(end);
   const currentStart = weekStart > start ? weekStart : start;
-  const weekRows = filtered.filter(r => r[cols.date] >= currentStart && r[cols.date] <= end);
+  const weekRows = sourceFiltered.filter(r => r[cols.date] >= currentStart && r[cols.date] <= end);
   $("weeklyMetrics").innerHTML = [
     metric("本周本地推消耗", `${fmtWan(sum(bizRows(weekRows, "本地推")))}w`, `${currentStart} 至 ${end}`, "biz-local"),
     metric("本周代充值消耗", `${fmtWan(sum(bizRows(weekRows, "代充值")))}w`, `${currentStart} 至 ${end}`, "biz-recharge"),
     metric("本周代运营消耗", `${fmtWan(sum(bizRows(weekRows, "代运营")))}w`, `${currentStart} 至 ${end}`, "biz-operate"),
   ].join("");
   const weekChart = (id, name, color) => {
-    const data = weekSeries(bizRows(filtered, name), start);
+    const data = weekSeries(bizRows(sourceFiltered, name), start);
     chart(id, "bar", data.map(x => x.label), [{ label: name, data: data.map(x => x.value), backgroundColor: color }]);
   };
   weekChart("localWeekChart", "本地推", palette.blue);
   weekChart("rechargeWeekChart", "代充值", palette.green);
   weekChart("operateWeekChart", "代运营", palette.amber);
 }
-function renderOperateDashboard(y, dates, operateRows) {
-  const yOperate = rows.filter(r => r[cols.date] === y && filtered.includes(r) && r[cols["合作模式-DOSS"]] === "代运营");
+function renderOperateDashboard(y, dates, operateRows, sourceRows = rows, sourceFiltered = filtered) {
+  const yOperate = sourceRows.filter(r => r[cols.date] === y && sourceFiltered.includes(r) && r[cols["合作模式-DOSS"]] === "代运营");
   $("operateMetrics").innerHTML = [
     metric("代运营昨日消耗", `${fmtWan(sum(yOperate))}w`, y, "biz-operate"),
   ].join("");
@@ -484,11 +496,11 @@ function renderOperateDashboard(y, dates, operateRows) {
     ], { plugins: { legend: { display: false } } });
   });
 }
-function renderRechargeDashboard(y, start, end, dates) {
-  const yRows = rows.filter(r => r[cols.date] === y && filtered.includes(r));
+function renderRechargeDashboard(y, start, end, dates, sourceRows = rows, sourceFiltered = filtered) {
+  const yRows = sourceRows.filter(r => r[cols.date] === y && sourceFiltered.includes(r));
   const weekStart = startOfWeek(end);
   const currentStart = weekStart > start ? weekStart : start;
-  const weekRows = filtered.filter(r => r[cols.date] >= currentStart && r[cols.date] <= end);
+  const weekRows = sourceFiltered.filter(r => r[cols.date] >= currentStart && r[cols.date] <= end);
   const teamNames = ["销售一组", "销售二组"];
   const teamMetric = (team, name, list, cls) => metric(`${team}${name}`, `${fmtWan(sum(list.filter(r => salesTeam(r) === team)))}w`, y, cls);
   $("rechargeMetrics").innerHTML = [
@@ -498,31 +510,31 @@ function renderRechargeDashboard(y, start, end, dates) {
     teamMetric("销售二组", "昨日代充值消耗", bizRows(yRows, "代充值"), "biz-recharge"),
   ].join("");
   const teamDailyDatasets = teamNames.map((team, i) => {
-    const list = bizRows(filtered, "代充值").filter(r => salesTeam(r) === team);
+    const list = bizRows(sourceFiltered, "代充值").filter(r => salesTeam(r) === team);
     const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
     return { label: team, data: dates.map(date => map.get(date) || 0), borderColor: [palette.blue, palette.green][i], backgroundColor: "rgba(82,119,246,.12)", tension: .25 };
   });
   chart("rechargeTeamDailyChart", "line", dates, teamDailyDatasets);
   chart("rechargeTeamWeekChart", "bar", teamNames, [{ label: "本周代充值消耗", data: teamNames.map(team => sum(bizRows(weekRows, "代充值").filter(r => salesTeam(r) === team))), backgroundColor: [palette.blue, palette.green] }]);
-  renderTargetCharts(null, "dashboardTeamTargetChart", "dashboardPersonTargetChart");
+  renderTargetCharts(null, "dashboardTeamTargetChart", "dashboardPersonTargetChart", sourceRows, document.body.classList.contains("my-dashboard-active"));
 }
 function avgDaily(list) {
   const days = group(list, r => r[cols.date]).filter(x => x.value > 0).length || 1;
   return sum(list) / days;
 }
 
-function actualRowsForTarget(month, level, name) {
-  const base = rows.filter(r => r[cols.monthKey] === month && r[cols.date] <= ($("endDate").value || dataDateMax(rows)));
+function actualRowsForTarget(month, level, name, sourceRows = rows) {
+  const base = sourceRows.filter(r => r[cols.monthKey] === month && r[cols.date] <= ($("endDate").value || dataDateMax(sourceRows)));
   if (level === "business") return bizRows(base, name);
   if (level === "team") return localPushRows(base).filter(r => salesTeam(r) === name);
   if (level === "person") return localPushRows(base).filter(r => r[cols["商务"]] === name);
   return [];
 }
 
-function actualNewForTarget(month, level, name) {
+function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads = true) {
   const labels = newLabels();
   const counted = new Set();
-  for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(rows))) {
+  for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(sourceRows), sourceRows)) {
     const label = effectiveNewLabel(entry, labels);
     if (!entry.opportunity || !isFreshCustomerLabel(label) || counted.has(entry.opportunity)) continue;
     const match = level === "business"
@@ -537,7 +549,7 @@ function actualNewForTarget(month, level, name) {
   for (const item of uploadHistory()) {
     for (const row of item.rows || []) {
       const colMap = Object.fromEntries((item.columns || []).map((col, i) => [col, row[i]]));
-      if (!uploadedRowAllowed(colMap)) continue;
+      if (scopedUploads && !uploadedRowAllowed(colMap)) continue;
       const opportunity = colMap["商机名称"];
       const label = labels[opportunity];
       if (!opportunity || !isFreshCustomerLabel(label) || counted.has(opportunity)) continue;
@@ -596,12 +608,12 @@ function freshCustomerCounts(month) {
   return result;
 }
 
-function targetProgressRows(month, level) {
+function targetProgressRows(month, level, sourceRows = rows, scopedTargets = true) {
   return targetRows(month)
-    .filter(row => row.level === level && targetVisible(row))
+    .filter(row => row.level === level && (!scopedTargets || targetVisible(row)))
     .map(row => {
-      const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name));
-      const actualNew = actualNewForTarget(row.month, row.level, row.name);
+      const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, sourceRows));
+      const actualNew = actualNewForTarget(row.month, row.level, row.name, sourceRows, scopedTargets);
       return { ...row, actualSpend, actualNew, spendPct: row.spend ? actualSpend / row.spend * 100 : 0, newPct: row.fresh ? actualNew / row.fresh * 100 : 0 };
     })
     .sort((a, b) => b.spendPct - a.spendPct);
@@ -957,9 +969,9 @@ function normalizeNewEntry(item) {
   if (typeof item === "string") return { key: `opportunity|${item}`, opportunity: item, subject: "", project: "", sales: "", biz: "", customerType: "未识别", kind: "历史无消耗商机", labelKey: item, defaultLabel: "存量商机" };
   return { ...item, project: item.project || "", labelKey: item.labelKey || item.opportunity };
 }
-function baseNewEntriesForMonth(month, endDate) {
-  const monthRows = rows.filter(r => r[cols.monthKey] === month && (!endDate || r[cols.date] <= endDate));
-  const historyRows = rows.filter(r => r[cols.monthKey] < month);
+function baseNewEntriesForMonth(month, endDate, sourceRows = rows) {
+  const monthRows = sourceRows.filter(r => r[cols.monthKey] === month && (!endDate || r[cols.date] <= endDate));
+  const historyRows = sourceRows.filter(r => r[cols.monthKey] < month);
   const historicalOppSpend = new Map(group(historyRows, r => r[cols["商机名称"]]).map(x => [x.label, x.value]));
   const historicalChannelSubjectSpend = new Map(group(historyRows.filter(isChannelRow), r => `${r[cols["商机名称"]]}|${r[cols["广告主主体"]]}`).map(x => [x.label, x.value]));
   const seen = new Set();
@@ -1157,13 +1169,13 @@ function downloadUploadedHistory() {
 function renderAll() { renderDashboard(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
 
 function init() {
-  const minDate = dataDateMin(rows);
-  const maxDate = dataDateMax(rows);
+  const minDate = dataDateMin(allRows);
+  const maxDate = dataDateMax(allRows);
   const months = dataMonths(rows);
   $("dataMeta").textContent = `数据范围 ${minDate} 至 ${maxDate}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
   $("startDate").value = maxDate.slice(0, 7) + "-01";
   $("endDate").value = maxDate;
-  for (const biz of [...new Set(rows.map(r => r[cols["合作模式-DOSS"]]))]) $("bizFilter").insertAdjacentHTML("beforeend", `<option>${esc(biz)}</option>`);
+  for (const biz of [...new Set(allRows.map(r => r[cols["合作模式-DOSS"]]))]) $("bizFilter").insertAdjacentHTML("beforeend", `<option>${esc(biz)}</option>`);
   $("targetMonth").innerHTML = months.map(month => `<option>${esc(month)}</option>`).join("");
   $("targetMonth").value = monthOf(maxDate);
   refreshTargetNameOptions();
@@ -1175,9 +1187,10 @@ function init() {
     document.body.classList.toggle("my-dashboard-active", btn.dataset.panel === "myDashboard");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     $(btn.dataset.panel === "myDashboard" ? "dashboard" : btn.dataset.panel).classList.add("active");
+    if (btn.dataset.panel === "dashboard" || btn.dataset.panel === "myDashboard") renderDashboard();
   });
   $("applyFilters").onclick = applyFilters;
-  $("resetFilters").onclick = () => { const max = dataDateMax(rows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
+  $("resetFilters").onclick = () => { const max = dataDateMax(allRows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
   $("tableSearch").oninput = () => { page = 1; renderDetails(); };
   $("prevPage").onclick = () => { page--; renderDetails(); };
   $("nextPage").onclick = () => { page++; renderDetails(); };
@@ -1219,10 +1232,10 @@ function init() {
     setUploadHistory(history.slice(0, 20));
     rebuildAllRows();
     rows = scopedRowsFor(currentUser);
-    const max = dataDateMax(rows);
+    const max = dataDateMax(allRows);
     $("startDate").value = max.slice(0, 7) + "-01";
     $("endDate").value = max;
-    $("dataMeta").textContent = `数据范围 ${dataDateMin(rows)} 至 ${max}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
+    $("dataMeta").textContent = `数据范围 ${dataDateMin(allRows)} 至 ${max}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
     applyFilters();
   };
   applyFilters();
