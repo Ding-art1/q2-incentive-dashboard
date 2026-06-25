@@ -139,22 +139,102 @@ function relationLookup() {
   return map;
 }
 const relationMap = relationLookup();
+const uploadAliases = {
+  date: ["date", "日期", "消耗日期", "数据日期", "时间"],
+  accountId: ["账户ID", "广告主ID", "账户id", "广告主id", "账号ID", "账号id"],
+  accountName: ["账户名称", "广告主名称", "账号名称"],
+  subject: ["广告主主体", "主体", "广告主体", "广告主公司名称", "公司名称"],
+  opportunity: ["商机名称", "包含商机", "商机", "客户/渠道", "客户名称"],
+  sales: ["商务", "商务名称", "负责人"],
+  biz: ["合作模式-DOSS", "合作模式", "业务类型", "业务"],
+  division: ["事业部"],
+  bu: ["BU"],
+  portId: ["端口ID", "端口id", "端口账号ID", "端口账号id"],
+  portBelong: ["端口归属", "端口", "端口名称"],
+  mediaPort: ["媒体端口", "投流类别", "媒体", "平台"],
+  industry1: ["一级行业"],
+  industry2: ["二级行业"],
+  totalSpend: ["总消耗", "总消耗(元)", "总消耗（元）", "消耗"],
+  nonGrantSpend: ["非赠款消耗", "非赠款消耗(元)", "非赠款消耗（元）", "现金消耗", "实际消耗", "非赠款"],
+  grantSpend: ["赠款消耗", "赠款消耗(元)", "赠款消耗（元）", "赠款"],
+  belong: ["归属类别", "直客or渠道", "直签or渠道", "客户归属", "归属"],
+  customerType: ["客户类型", "类型", "直签/渠道"],
+  project: ["项目", "项目名称"]
+};
+function normalizeObjectKeys(row) {
+  const result = {};
+  for (const [key, value] of Object.entries(row || {})) {
+    result[`${key}`.trim()] = value;
+  }
+  return result;
+}
+function pickField(row, names) {
+  for (const name of names) {
+    if (row[name] !== undefined && row[name] !== null && `${row[name]}` !== "") return row[name];
+  }
+  return "";
+}
+function numericField(row, names) {
+  const raw = pickField(row, names);
+  if (typeof raw === "number") return raw;
+  const text = `${raw || ""}`.replace(/,/g, "").trim();
+  const value = Number(text);
+  return Number.isFinite(value) ? value : 0;
+}
+function normalizeMediaPort(value) {
+  const text = `${value || ""}`.trim();
+  if (!text) return "";
+  if (text === "本地推") return "巨量-本地推";
+  if (text.toUpperCase() === "AD") return "巨量-AD";
+  return text;
+}
+function canonicalUploadRow(row) {
+  const source = normalizeObjectKeys(row);
+  const total = numericField(source, uploadAliases.totalSpend);
+  const grant = numericField(source, uploadAliases.grantSpend);
+  const nonGrantRaw = numericField(source, uploadAliases.nonGrantSpend);
+  const nonGrant = nonGrantRaw || Math.max(total - grant, 0);
+  const mediaPort = normalizeMediaPort(pickField(source, uploadAliases.mediaPort));
+  return {
+    "日期": pickField(source, uploadAliases.date),
+    "账户ID": pickField(source, uploadAliases.accountId),
+    "账户名称": pickField(source, uploadAliases.accountName),
+    "广告主主体": pickField(source, uploadAliases.subject),
+    "商机名称": pickField(source, uploadAliases.opportunity),
+    "商务": pickField(source, uploadAliases.sales),
+    "合作模式-DOSS": pickField(source, uploadAliases.biz),
+    "事业部": pickField(source, uploadAliases.division),
+    "BU": pickField(source, uploadAliases.bu),
+    "端口ID": pickField(source, uploadAliases.portId),
+    "端口归属": pickField(source, uploadAliases.portBelong),
+    "媒体端口": mediaPort,
+    "一级行业": pickField(source, uploadAliases.industry1),
+    "二级行业": pickField(source, uploadAliases.industry2),
+    "总消耗": total || nonGrant + grant,
+    "非赠款消耗": nonGrant,
+    "赠款消耗": grant,
+    "归属类别": pickField(source, uploadAliases.belong),
+    "客户类型": pickField(source, uploadAliases.customerType),
+    "项目": pickField(source, uploadAliases.project)
+  };
+}
 function uploadedRecordFromObject(row) {
-  const date = normalizeDateValue(row["date"] || row["日期"]);
+  const canonical = canonicalUploadRow(row);
+  const date = normalizeDateValue(canonical["日期"]);
   if (!date) return null;
   const d = dateObj(date);
   const monthKey = date.slice(0, 7);
-  const opportunity = row["商机名称"] || "";
-  const subject = row["广告主主体"] || "";
+  const opportunity = canonical["商机名称"] || "";
+  const subject = canonical["广告主主体"] || "";
   const relation = relationMap.get(`${opportunity}|${subject}`) || {};
   const labels = newLabels();
   const projects = newProjects();
   const opportunityKey = opportunity;
   const channelSubjectKey = `channelSubject|${opportunity}|${subject}`;
   const savedLabel = labels[channelSubjectKey] || labels[opportunityKey] || "";
-  const belong = labelToBelong(savedLabel, row["归属类别"] || row["直客or渠道"] || relation.belong || "");
-  const customerType = row["客户类型"] || (belong === "渠道推荐" || `${belong}`.includes("渠道") ? "渠道" : "直签");
-  const project = projects[channelSubjectKey] || projects[opportunityKey] || row["项目"] || relation.project || opportunity || "";
+  const belong = labelToBelong(savedLabel, canonical["归属类别"] || relation.belong || "");
+  const customerType = canonical["客户类型"] || (belong === "渠道推荐" || `${belong}`.includes("渠道") ? "渠道" : "直签");
+  const project = projects[channelSubjectKey] || projects[opportunityKey] || canonical["项目"] || relation.project || opportunity || "";
   const derived = {
     date,
     monthKey,
@@ -164,10 +244,10 @@ function uploadedRecordFromObject(row) {
     "归属类别": belong,
     "客户类型": customerType,
     "项目": project,
-    "端口归属": row["端口归属"] || row["端口"] || portRegion(row["端口ID"])
+    "端口归属": canonical["端口归属"] || portRegion(canonical["端口ID"])
   };
   return meta.columns.map(name => {
-    const value = derived[name] ?? row[name] ?? "";
+    const value = derived[name] ?? canonical[name] ?? "";
     return ["总消耗", "非赠款消耗", "赠款消耗"].includes(name) ? Number(value || 0) : value;
   });
 }
@@ -1297,7 +1377,8 @@ function buildNewEntries(data) {
   const historicalChannelSubjectSpend = new Map(group(rows.filter(isChannelRow), r => `${r[cols["商机名称"]]}|${r[cols["广告主主体"]]}`).map(x => [x.label, x.value]));
   const seen = new Set();
   const entries = [];
-  for (const row of data) {
+  for (const rawRow of data) {
+    const row = canonicalUploadRow(rawRow);
     const opportunity = row["商机名称"] || "";
     const subject = row["广告主主体"] || "";
     const sales = row["商务"] || "";
