@@ -12,7 +12,7 @@ const targetKey = "performance-dashboard-targets-v1";
 const authKey = "performance-dashboard-auth-v1";
 const users = [
   { account: "admin", name: "管理员", password: "admin888", role: "admin", scopeLabel: "全部数据及管理、上传数据权限" },
-  { account: "吕帅印", aliases: ["admin"], name: "吕帅印", password: "adminlsy", role: "team", team: "销售二组", scopeLabel: "商务二组" },
+  { account: "吕帅印", aliases: ["admin"], name: "吕帅印", password: "adminlsy", role: "team", team: "销售一组", scopeLabel: "商务一组" },
   { account: "程鹏", aliases: ["admin"], name: "程鹏", password: "admincp1", role: "team", team: "销售一组", scopeLabel: "商务一组" },
   { account: "黄文强", aliases: ["admin"], name: "黄文强", password: "hwq9", role: "person", person: "黄文强", scopeLabel: "黄文强本人数据" },
   { account: "陈佳", aliases: ["admin"], name: "陈佳", password: "cj8", role: "person", person: "陈佳", scopeLabel: "陈佳本人数据" },
@@ -31,6 +31,7 @@ const defaultTargetRows = [
   { month: "2026-06", level: "team", name: "销售二组", biz: "本地推", spend: 25_000_000, fresh: 0 }
 ];
 const salesTeams = {
+  "吕帅印": "销售一组",
   "程鹏": "销售一组",
   "黄文强": "销售一组",
   "陈佳": "销售一组",
@@ -40,6 +41,7 @@ const salesTeams = {
   "胡金正": "销售二组",
   "于泽": "销售二组"
 };
+const noTargetSales = new Set(["魏筱宇"]);
 let charts = {};
 const baseRows = payload.records;
 let allRows = baseRows;
@@ -274,6 +276,7 @@ function targetFor(month, level, name, biz = "") {
   return getTargets()[`${month}|${level}|${name}|${targetBiz}`] || { month, level, name, biz: targetBiz, spend: 0, fresh: 0 };
 }
 function targetVisible(row) {
+  if (row.level === "person" && noTargetSales.has(row.name)) return false;
   if (isAdmin()) return true;
   if (currentUser?.role === "team") {
     return (row.level === "team" && row.name === currentUser.team) || (row.level === "person" && salesTeams[row.name] === currentUser.team);
@@ -844,7 +847,9 @@ function renderDailyTeams(yRows, mRows, month, date) {
       : sum(mRows.filter(r => salesTeam(r) === team));
     return dailyProgressCard({ title: `${team}昨日消耗`, value: day, actual, target, tone: i ? "recharge" : "local", date });
   }).join("");
-  const sales = [...new Set(mRows.map(r => r[cols["商务"]]).filter(Boolean))].sort((a, b) => `${salesTeams[a] || ""}${a}`.localeCompare(`${salesTeams[b] || ""}${b}`, "zh-CN"));
+  const sales = [...new Set(mRows.map(r => r[cols["商务"]]).filter(Boolean))]
+    .filter(name => !noTargetSales.has(name) && targetRows(month).some(row => row.level === "person" && row.name === name && Number(row.spend || 0) > 0))
+    .sort((a, b) => `${salesTeams[a] || ""}${a}`.localeCompare(`${salesTeams[b] || ""}${b}`, "zh-CN"));
   const body = sales.map(name => {
     const day = sum(yRows.filter(r => r[cols["商务"]] === name));
     const targetRowsForSales = targetRows(month).filter(row => row.level === "person" && row.name === name);
