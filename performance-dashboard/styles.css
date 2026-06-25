@@ -687,6 +687,43 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   font-weight: 700;
 }
 .summaryLine b { color: var(--ink); }
+.shareRows {
+  display: grid;
+  gap: 7px;
+  margin-top: 10px;
+  max-height: 190px;
+  overflow: auto;
+}
+.shareRow {
+  display: grid;
+  grid-template-columns: 76px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 9px;
+  border: 1px solid #edf2f8;
+  border-radius: 8px;
+  background: #fbfdff;
+  font-size: 12px;
+}
+.shareRow b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.shareRow span {
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-weight: 800;
+  text-align: center;
+}
+.shareRow .direct {
+  color: var(--blue);
+  background: #eef4ff;
+}
+.shareRow .channel {
+  color: var(--green);
+  background: #edfdf5;
+}
 .grade { display: inline-block; min-width: 28px; text-align: center; padding: 2px 6px; border-radius: 999px; color: #fff; background: var(--blue); font-weight: 700; }
 .grade.SS { background: var(--red); }
 .grade.S { background: var(--amber); }

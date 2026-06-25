@@ -1261,6 +1261,28 @@ function renderSalesCustomerMix(list) {
     { label: "直签个数", data: sales.map(x => x.directCount), backgroundColor: palette.blue },
     { label: "渠道个数", data: sales.map(x => x.channelCount), backgroundColor: palette.green }
   ], { countAxis: true, scales: { x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } }, y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0 } } } });
+  renderSalesMixShare("salesCustomerSpendShare", sales, "spend");
+  renderSalesMixShare("salesCustomerCountShare", sales, "count");
+}
+function renderSalesMixShare(id, sales, mode) {
+  if (!$(id)) return;
+  const rows = sales.map(x => {
+    const direct = mode === "spend" ? x.directSpend : x.directCount;
+    const channel = mode === "spend" ? x.channelSpend : x.channelCount;
+    const total = direct + channel;
+    return { name: x.name, direct, channel, total };
+  }).filter(x => x.total > 0).slice(0, 10);
+  $(id).innerHTML = rows.map(x => {
+    const directPct = x.total ? x.direct / x.total * 100 : 0;
+    const channelPct = x.total ? x.channel / x.total * 100 : 0;
+    const directValue = mode === "spend" ? `${fmtWan(x.direct)}w` : fmtMoney(x.direct);
+    const channelValue = mode === "spend" ? `${fmtWan(x.channel)}w` : fmtMoney(x.channel);
+    return `<div class="shareRow">
+      <b>${esc(x.name)}</b>
+      <span class="direct">直签 ${pctFmt.format(directPct)}%｜${directValue}</span>
+      <span class="channel">渠道 ${pctFmt.format(channelPct)}%｜${channelValue}</span>
+    </div>`;
+  }).join("") || `<div class="empty small">暂无占比数据</div>`;
 }
 function newCustomerType(entry, labels = newLabels()) {
   const label = effectiveNewLabel(entry, labels);
