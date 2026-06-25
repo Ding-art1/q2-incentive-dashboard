@@ -22,12 +22,13 @@
     <aside class="sidebar">
       <h1>业绩看板</h1>
       <button class="nav active" data-panel="dashboard">仪表盘</button>
-      <button class="nav" data-panel="daily">日报</button>
+      <button class="nav userOnly" data-panel="myDashboard">我的仪表盘</button>
+      <button class="nav restrictedOnly" data-panel="daily">日报</button>
       <button class="nav" data-panel="details">消耗明细</button>
       <button class="nav adminOnly" data-panel="targets">目标管理</button>
       <a class="nav link" href="https://ding-art1.github.io/q2-incentive-dashboard/" target="_blank" rel="noreferrer">毛利板块</a>
       <button class="nav" data-panel="customers">客户构成</button>
-      <button class="nav" data-panel="changes">新增&流失</button>
+      <button class="nav restrictedOnly" data-panel="changes">新增&流失</button>
       <button class="nav adminOnly" data-panel="dataManage">数据管理</button>
     </aside>
     <main>

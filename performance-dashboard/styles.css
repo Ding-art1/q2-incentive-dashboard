@@ -34,7 +34,9 @@ body.auth-locked main {
 body.auth-ready #loginScreen {
   display: none;
 }
-body.not-admin .adminOnly {
+body.not-admin .adminOnly,
+body.not-admin .restrictedOnly,
+body.admin-user .userOnly {
   display: none !important;
 }
 .loginScreen {

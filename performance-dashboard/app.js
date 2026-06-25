@@ -31,16 +31,14 @@ const defaultTargetRows = [
   { month: "2026-06", level: "team", name: "销售二组", spend: 25_000_000, fresh: 0 }
 ];
 const salesTeams = {
-  "陈佳": "销售一组",
   "程鹏": "销售一组",
+  "黄文强": "销售一组",
+  "陈佳": "销售一组",
   "樊俊俊": "销售一组",
-  "胡金正": "销售一组",
-  "陈梦燕": "销售二组",
-  "黄文强": "销售二组",
   "尤欢": "销售二组",
-  "于泽": "销售二组",
-  "吕帅印": "销售二组",
-  "魏筱宇": "销售二组"
+  "陈梦燕": "销售二组",
+  "胡金正": "销售二组",
+  "于泽": "销售二组"
 };
 let charts = {};
 const baseRows = payload.records;
@@ -1157,11 +1155,12 @@ function init() {
   $("targetMonth").value = monthOf(maxDate);
   refreshTargetNameOptions();
   document.querySelectorAll(".nav[data-panel]").forEach(btn => btn.onclick = () => {
-    if (btn.classList.contains("adminOnly") && !isAdmin()) return;
+    if ((btn.classList.contains("adminOnly") || btn.classList.contains("restrictedOnly")) && !isAdmin()) return;
+    if (btn.classList.contains("userOnly") && isAdmin()) return;
     document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-    $(btn.dataset.panel).classList.add("active");
+    $(btn.dataset.panel === "myDashboard" ? "dashboard" : btn.dataset.panel).classList.add("active");
   });
   $("applyFilters").onclick = applyFilters;
   $("resetFilters").onclick = () => { const max = dataDateMax(rows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
