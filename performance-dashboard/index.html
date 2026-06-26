@@ -285,10 +285,22 @@
         <section class="uploadBox">
           <div>
             <h3>数据上传与历史下载</h3>
-            <p>上传当日 Excel 后，会识别历史无消耗商机；可手工标记为存量商机、代充值新客户、代运营新客户或代充值新渠道。上传记录保存在当前浏览器。</p>
+            <p>上传当日 Excel 后，会识别历史无消耗商机；可手工标记后同步到云端，其他设备刷新链接即可看到最新数据。</p>
           </div>
           <input id="uploadFile" type="file" accept=".xlsx,.xls,.csv" />
           <button id="saveNewLabels">保存本次标记</button>
+        </section>
+        <section class="block">
+          <h3>云端同步 <small>使用 GitHub 仓库保存上传历史、目标和新增识别标记</small></h3>
+          <div class="cloudTools">
+            <label>GitHub 写入 Token
+              <input id="githubToken" type="password" placeholder="仅管理员本机保存，不写入网页源码" autocomplete="off" />
+            </label>
+            <button id="saveGithubToken">保存 Token</button>
+            <button id="pullCloudData">拉取云端数据</button>
+            <button id="publishCloudData">发布到云端</button>
+          </div>
+          <p id="cloudStatus" class="cloudStatus">正在检查云端数据...</p>
         </section>
         <section class="block">
           <h3>历史数据下载</h3>

@@ -10,6 +10,12 @@ const newProjectKey = "performance-dashboard-new-projects-v1";
 const uploadHistoryKey = "performance-dashboard-upload-history-v1";
 const targetKey = "performance-dashboard-targets-v1";
 const authKey = "performance-dashboard-auth-v1";
+const githubTokenKey = "performance-dashboard-github-token-v1";
+const cloudRepo = "Ding-art1/q2-incentive-dashboard";
+const cloudPath = "performance-dashboard/cloud-data.json";
+const cloudBranch = "main";
+const cloudApiUrl = `https://api.github.com/repos/${cloudRepo}/contents/${cloudPath}`;
+const cloudReadUrl = `./cloud-data.json`;
 const users = [
   { account: "admin", name: "管理员", password: "admin888", role: "admin", scopeLabel: "全部数据及管理、上传数据权限" },
   { account: "吕帅印", aliases: ["admin"], name: "吕帅印", password: "adminlsy", role: "team", team: "销售一组", scopeLabel: "商务一组" },
@@ -136,6 +142,132 @@ function rowPortRegion(row) {
 }
 function uploadHistory() { return JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]"); }
 function setUploadHistory(v) { localStorage.setItem(uploadHistoryKey, JSON.stringify(v)); }
+function cloudStatus(message, tone = "") {
+  const el = $("cloudStatus");
+  if (!el) return;
+  el.textContent = message;
+  el.className = `cloudStatus ${tone}`.trim();
+}
+function uploadFingerprint(item) {
+  const first = (item.rows || [])[0] || [];
+  const last = (item.rows || [])[(item.rows || []).length - 1] || [];
+  return [item.fileName || "", item.rowCount || 0, (item.rows || []).length, first.join("|"), last.join("|")].join("::");
+}
+function mergeUploadHistory(local, cloud) {
+  const seen = new Set();
+  return [...(cloud || []), ...(local || [])].filter(item => {
+    const key = uploadFingerprint(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).sort((a, b) => `${b.uploadedAt || ""}`.localeCompare(`${a.uploadedAt || ""}`)).slice(0, 80);
+}
+function cloudSnapshot() {
+  return {
+    version: 1,
+    updatedAt: new Date().toLocaleString("zh-CN", { hour12: false }),
+    uploads: uploadHistory(),
+    newLabels: newLabels(),
+    newProjects: newProjects(),
+    targets: getTargets()
+  };
+}
+function applyCloudSnapshot(data, message = "") {
+  if (!data || typeof data !== "object") return false;
+  setUploadHistory(mergeUploadHistory(uploadHistory(), data.uploads || []));
+  if (data.newLabels) setNewLabels({ ...newLabels(), ...data.newLabels });
+  if (data.newProjects) setNewProjects({ ...newProjects(), ...data.newProjects });
+  if (data.targets) setTargets({ ...getTargets(), ...data.targets });
+  rebuildAllRows();
+  if (currentUser) {
+    rows = scopedRowsFor(currentUser);
+    filtered = rows;
+  }
+  if (message) cloudStatus(message, "good");
+  return true;
+}
+async function loadCloudData({ refresh = false } = {}) {
+  try {
+    const res = await fetch(`${cloudReadUrl}?v=${Date.now()}`, { cache: "no-store" });
+    if (res.status === 404) {
+      cloudStatus("云端暂无上传历史，当前使用内置数据。", "warn");
+      return false;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const ok = applyCloudSnapshot(data, `已同步云端数据：${data.updatedAt || "最新版本"}`);
+    if (refresh && ok) {
+      const max = dataDateMax(allRows);
+      if ($("startDate") && $("endDate")) {
+        $("startDate").value = max.slice(0, 7) + "-01";
+        $("endDate").value = max;
+      }
+      applyFilters();
+    }
+    return ok;
+  } catch (error) {
+    cloudStatus(`云端数据读取失败：${error.message}`, "bad");
+    return false;
+  }
+}
+function githubToken() {
+  return localStorage.getItem(githubTokenKey) || "";
+}
+function setGithubToken(token) {
+  localStorage.setItem(githubTokenKey, token || "");
+}
+function base64Encode(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.slice(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+async function publishCloudData(reason = "更新云端数据") {
+  if (!isAdmin()) return false;
+  const token = githubToken();
+  if (!token) {
+    cloudStatus("已更新当前浏览器。要让其他设备看到，请先保存 GitHub 写入 Token 后点击“发布到云端”。", "warn");
+    return false;
+  }
+  cloudStatus("正在发布到云端...", "warn");
+  try {
+    const headers = {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${token}`,
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+    const current = await fetch(`${cloudApiUrl}?ref=${cloudBranch}`, { headers });
+    const sha = current.ok ? (await current.json()).sha : undefined;
+    const snapshot = cloudSnapshot();
+    const res = await fetch(cloudApiUrl, {
+      method: "PUT",
+      headers: { ...headers, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: `${reason}: ${snapshot.updatedAt}`,
+        branch: cloudBranch,
+        sha,
+        content: base64Encode(JSON.stringify(snapshot, null, 2))
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    cloudStatus(`已发布到云端：${snapshot.updatedAt}。其他设备刷新链接即可看到。`, "good");
+    return true;
+  } catch (error) {
+    cloudStatus(`云端发布失败：${error.message}`, "bad");
+    return false;
+  }
+}
+function autoPublishCloud(reason) {
+  if (!isAdmin()) return;
+  if (githubToken()) publishCloudData(reason);
+  else cloudStatus("当前更新已保存到本机；配置 GitHub 写入 Token 后可发布到云端。", "warn");
+}
 function relationLookup() {
   const relationCols = Object.fromEntries(meta.relationColumns.map((name, i) => [name, i]));
   const map = new Map();
@@ -1167,6 +1299,7 @@ function saveTarget() {
   refreshTargetNameOptions();
   $("saveTarget").textContent = "已保存";
   setTimeout(() => $("saveTarget").textContent = "保存目标", 1200);
+  autoPublishCloud("Update dashboard targets");
 }
 
 function renderTargets() {
@@ -1745,6 +1878,7 @@ function saveNewLabelSelections() {
     btn.textContent = "已保存";
     setTimeout(() => btn.textContent = text, 1200);
   }
+  autoPublishCloud("Update new opportunity labels");
 }
 
 function renderUploadHistory() {
@@ -1832,6 +1966,13 @@ function init() {
   $("downloadUploadedHistory").onclick = downloadUploadedHistory;
   $("saveNewLabels").onclick = saveNewLabelSelections;
   $("saveNewLabelsInChanges").onclick = saveNewLabelSelections;
+  if ($("githubToken")) $("githubToken").value = githubToken();
+  if ($("saveGithubToken")) $("saveGithubToken").onclick = () => {
+    setGithubToken($("githubToken").value.trim());
+    cloudStatus(githubToken() ? "GitHub Token 已保存在当前浏览器，可以发布云端数据。" : "Token 已清空。", githubToken() ? "good" : "warn");
+  };
+  if ($("pullCloudData")) $("pullCloudData").onclick = () => loadCloudData({ refresh: true });
+  if ($("publishCloudData")) $("publishCloudData").onclick = () => publishCloudData("Manual cloud sync");
   $("uploadFile").onchange = async e => {
     if (!isAdmin()) return;
     const file = e.target.files[0];
@@ -1860,16 +2001,18 @@ function init() {
     $("endDate").value = max;
     $("dataMeta").textContent = `数据范围 ${dataDateMin(allRows)} 至 ${max}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
     applyFilters();
+    autoPublishCloud(`Upload ${file.name}`);
     e.target.value = "";
   };
   applyFilters();
 }
-function bootstrap() {
+async function bootstrap() {
   const user = savedAuthUser();
   if (!user) {
     showLogin();
     return;
   }
+  await loadCloudData();
   applyAuth(user);
   init();
 }
