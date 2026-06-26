@@ -1196,7 +1196,7 @@ function renderDailyNewItems(month, date) {
     .filter(entry => entryFirstDate(entry) === date)
     .map(entry => ({ ...entry, label: effectiveNewLabel(entry, labels), projectName: projects[entry.labelKey] || entry.project || "未填写" }));
   const direct = items.filter(x => x.label === "代充值新客户" || x.label === "代运营新客户" || (x.customerType === "直签" && x.label !== "存量商机"));
-  const channel = items.filter(x => x.label === "代充值新渠道" || x.label === "历史渠道新增主体" || x.kind.includes("渠道"));
+  const channel = items.filter(x => x.label === "代充值新渠道" || x.kind === "渠道新增");
   $("dailyNewDirect").innerHTML = dailyNewList(direct, "直签");
   $("dailyNewChannel").innerHTML = dailyNewList(channel, "渠道");
 }
