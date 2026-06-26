@@ -121,6 +121,8 @@ function group(list, keyFn, idx = cols["非赠款消耗"]) {
 }
 function uniqueCount(list, keyFn) { return new Set(list.map(keyFn).filter(Boolean)).size; }
 function grade(spend) { return spend >= 1000000 ? "SS" : spend >= 500000 ? "S" : spend >= 200000 ? "A" : spend >= 60000 ? "B" : "C"; }
+const gradeOrder = ["SS", "S", "A", "B", "C"];
+const gradeColors = { SS: palette?.red || "#ef4444", S: palette?.amber || "#f59e0b", A: palette?.blue || "#2563eb", B: palette?.green || "#16a34a", C: "#64748b" };
 function salesTeam(row) { return salesTeams[row[cols["商务"]]] || "未分组"; }
 function newLabels() { return JSON.parse(localStorage.getItem(newLabelKey) || "{}"); }
 function setNewLabels(v) { localStorage.setItem(newLabelKey, JSON.stringify(v)); }
@@ -1531,6 +1533,7 @@ function renderSalesCustomerMix(list) {
   ], { countAxis: true, scales: { x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } }, y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0 } } } });
   renderSalesMixShare("salesCustomerSpendShare", sales, "spend");
   renderSalesMixShare("salesCustomerCountShare", sales, "count");
+  renderSalesGradeMix(list);
 }
 function renderSalesMixShare(id, sales, mode) {
   if (!$(id)) return;
@@ -1551,6 +1554,74 @@ function renderSalesMixShare(id, sales, mode) {
       <span class="channel">渠道 ${pctFmt.format(channelPct)}%｜${channelValue}</span>
     </div>`;
   }).join("") || `<div class="empty small">暂无占比数据</div>`;
+}
+function salesGradeMix(list) {
+  const projectBuckets = new Map();
+  for (const row of list) {
+    const sales = row[cols["商务"]] || "未填写";
+    const project = row[cols["项目"]] || row[cols["商机名称"]] || "未填写";
+    const key = `${sales}|${project}`;
+    projectBuckets.set(key, (projectBuckets.get(key) || 0) + Number(row[cols["非赠款消耗"]] || 0));
+  }
+  const salesMap = new Map();
+  for (const [key, spend] of projectBuckets.entries()) {
+    if (spend <= 0) continue;
+    const [sales] = key.split("|");
+    if (!salesMap.has(sales)) {
+      salesMap.set(sales, {
+        name: sales,
+        totalSpend: 0,
+        totalCount: 0,
+        spend: Object.fromEntries(gradeOrder.map(level => [level, 0])),
+        count: Object.fromEntries(gradeOrder.map(level => [level, 0]))
+      });
+    }
+    const bucket = salesMap.get(sales);
+    const level = grade(spend);
+    bucket.spend[level] += spend;
+    bucket.count[level] += 1;
+    bucket.totalSpend += spend;
+    bucket.totalCount += 1;
+  }
+  return [...salesMap.values()].sort((a, b) => b.totalSpend - a.totalSpend);
+}
+function renderSalesGradeMix(list) {
+  const sales = salesGradeMix(list);
+  const labels = sales.map(x => x.name);
+  const gradeDatasets = mode => gradeOrder.map(level => ({
+    label: level,
+    data: sales.map(x => x[mode][level]),
+    backgroundColor: gradeColors[level]
+  }));
+  chart("salesGradeSpendChart", "bar", labels, gradeDatasets("spend"), {
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } }
+    }
+  });
+  chart("salesGradeCountChart", "bar", labels, gradeDatasets("count"), {
+    countAxis: true,
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0, callback: v => fmtMoney(v) } }
+    }
+  });
+  renderSalesGradeRows("salesGradeSpendShare", sales, "spend");
+  renderSalesGradeRows("salesGradeCountShare", sales, "count");
+}
+function renderSalesGradeRows(id, sales, mode) {
+  if (!$(id)) return;
+  const rows = sales.filter(x => mode === "spend" ? x.totalSpend > 0 : x.totalCount > 0).slice(0, 10);
+  $(id).innerHTML = rows.map(x => {
+    const total = mode === "spend" ? x.totalSpend : x.totalCount;
+    const cells = gradeOrder.map(level => {
+      const value = x[mode][level] || 0;
+      const label = mode === "spend" ? `${fmtWan(value)}w` : `${fmtMoney(value)}个`;
+      const pct = total ? value / total * 100 : 0;
+      return `<span><b class="grade ${level}">${level}</b>${label}<em>${pctFmt.format(pct)}%</em></span>`;
+    }).join("");
+    return `<div class="gradeRow"><strong>${esc(x.name)}</strong><div>${cells}</div></div>`;
+  }).join("") || `<div class="empty small">暂无等级分布数据</div>`;
 }
 function newCustomerType(entry, labels = newLabels()) {
   const label = effectiveNewLabel(entry, labels);

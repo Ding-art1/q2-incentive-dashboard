@@ -914,6 +914,50 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
 .grade.S { background: var(--amber); }
 .grade.A { background: var(--blue); }
 .grade.B { background: var(--green); }
+.grade.C { background: #64748b; }
+.customerGradeGrid { margin-top: 16px; }
+.gradeRows {
+  max-height: 170px;
+  overflow: auto;
+  margin-top: 10px;
+  padding-right: 6px;
+}
+.gradeRow {
+  display: grid;
+  grid-template-columns: 86px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.gradeRow > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gradeRow > div {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(78px, 1fr));
+  gap: 6px;
+}
+.gradeRow span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 5px 6px;
+  border-radius: 999px;
+  background: #f4f7fb;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+}
+.gradeRow span em {
+  color: var(--muted);
+  font-style: normal;
+  font-size: 11px;
+}
 .empty { color: var(--muted); padding: 28px; text-align: center; }
 @media (max-width: 1100px) {
   body { grid-template-columns: 1fr; }
