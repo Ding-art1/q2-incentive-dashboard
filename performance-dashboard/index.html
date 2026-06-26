@@ -61,12 +61,18 @@
         </section>
         <section class="block"><h3>总数据板块</h3><div class="metricGrid" id="dashboardMetrics"></div></section>
         <section class="block">
-          <h3>日耗板块</h3>
+          <h3>昨日消耗板块</h3>
           <div class="metricGrid" id="dailyMetrics"></div>
           <div class="grid two">
-            <article class="card wide"><h4>筛选周期内日耗曲线</h4><canvas id="dailyTrend"></canvas></article>
             <article class="card"><h4>昨日直签客户消耗降序</h4><div id="yDirectRank" class="rankList"></div></article>
             <article class="card"><h4>昨日渠道消耗降序</h4><div id="yChannelRank" class="rankList"></div></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>日耗板块</h3>
+          <div class="metricGrid" id="avgDailyMetrics"></div>
+          <div class="grid">
+            <article class="card wide"><h4 id="dailyTrendTitle">日耗视图</h4><canvas id="dailyTrend"></canvas></article>
           </div>
         </section>
         <section class="block">

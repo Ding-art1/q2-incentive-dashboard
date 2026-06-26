@@ -962,11 +962,7 @@ function renderDashboard() {
     const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
     return dates.map(date => map.get(date) || 0);
   };
-  chart("dailyTrend", "line", dates, [
-    { label: "本地推", data: dailyFor(local), borderColor: palette.blue, backgroundColor: "rgba(82,119,246,.12)", tension: .25 },
-    { label: "代充值", data: dailyFor(recharge), borderColor: palette.green, backgroundColor: "rgba(27,191,138,.12)", tension: .25 },
-    { label: "代运营", data: dailyFor(operate), borderColor: palette.amber, backgroundColor: "rgba(243,154,34,.12)", tension: .25 },
-  ]);
+  renderDailyView(start, end, dashboardFiltered, dates, dailyFor);
   const yLocalRows = localPushRows(yRows);
   renderRankList("yDirectRank", group(yLocalRows.filter(isDirectRow), r => r[cols["项目"]] || r[cols["商机名称"]]), 15);
   renderRankList("yChannelRank", group(yLocalRows.filter(isChannelRow), r => r[cols["项目"]] || r[cols["商机名称"]]), 15);
@@ -1022,8 +1018,39 @@ function renderDailyMetrics(y, prev, sourceRows = rows, sourceFiltered = filtere
     metric("昨日本地推消耗", `${fmtWan(localY)}w`, `较前日 ${fmtWan(localY - sum(bizRows(prevRows, "本地推")))}w`, "biz-local"),
     metric("昨日代充值消耗", `${fmtWan(rechargeY)}w`, `较前日 ${fmtWan(rechargeY - sum(bizRows(prevRows, "代充值")))}w`, "biz-recharge"),
     metric("昨日代运营消耗", `${fmtWan(operateY)}w`, `较前日 ${fmtWan(operateY - sum(bizRows(prevRows, "代运营")))}w`, "biz-operate"),
-    metric("当前平均日耗", `${fmtWan(avgDaily(localPushRows(sourceFiltered)))}w`, "", "biz-new"),
   ].join("");
+}
+function renderDailyView(start, end, sourceFiltered = filtered) {
+  const business = [
+    { name: "本地推", cls: "biz-local", color: palette.blue },
+    { name: "代充值", cls: "biz-recharge", color: palette.green },
+    { name: "代运营", cls: "biz-operate", color: palette.amber }
+  ];
+  $("avgDailyMetrics").innerHTML = business.map(item => {
+    const list = bizRows(sourceFiltered, item.name);
+    return metric(`${item.name}当前平均日耗`, `${fmtWan(avgDaily(list))}w`, "", item.cls);
+  }).join("");
+  const endMonth = monthOf(end);
+  const latestMonth = monthOf(dataDateMax(dashboardSourceRows()));
+  const selectedMonths = periodMonths(sourceFiltered).sort();
+  const showCurrentMonthDaily = endMonth === latestMonth;
+  if (showCurrentMonthDaily) {
+    const monthRows = sourceFiltered.filter(r => r[cols.monthKey] === endMonth);
+    const dates = [...new Set(monthRows.map(r => r[cols.date]))].sort();
+    $("dailyTrendTitle").textContent = `${endMonth} 日耗折线`;
+    chart("dailyTrend", "line", dates, business.map(item => {
+      const list = bizRows(monthRows, item.name);
+      const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
+      return { label: item.name, data: dates.map(date => map.get(date) || 0), borderColor: item.color, backgroundColor: "rgba(82,119,246,.12)", tension: .25 };
+    }));
+    return;
+  }
+  $("dailyTrendTitle").textContent = "历史月份平均日耗";
+  chart("dailyTrend", "bar", selectedMonths, business.map(item => ({
+    label: item.name,
+    data: selectedMonths.map(month => avgDaily(bizRows(sourceFiltered.filter(r => r[cols.monthKey] === month), item.name))),
+    backgroundColor: item.color
+  })));
 }
 function renderWeeklyDashboard(start, end, sourceFiltered = filtered) {
   const weekStart = startOfWeek(end);
