@@ -664,6 +664,53 @@ function renderRankList(id, items, limit = 15) {
   const max = Math.max(...data.map(x => x.value), 1);
   target.innerHTML = data.map(x => `<div class="rankRow"><span>${esc(x.label)}</span><div class="bar"><span style="width:${Math.max(2, x.value / max * 100)}%"></span></div><strong>${fmtWan(x.value)}w</strong></div>`).join("") || `<div class="empty">暂无数据</div>`;
 }
+function topWithOther(items, limit = 10, otherLabel = "其他") {
+  const sorted = [...items].filter(x => x.value > 0).sort((a, b) => b.value - a.value);
+  if (sorted.length <= limit) return sorted;
+  const top = sorted.slice(0, limit - 1);
+  const other = sorted.slice(limit - 1).reduce((acc, x) => acc + Number(x.value || 0), 0);
+  return [...top, { label: otherLabel, value: other }];
+}
+function renderIndustryDashboard(list) {
+  const localRows = localPushRows(list);
+  const spend = topWithOther(group(localRows, r => r[cols["一级行业"]] || "未填写"), 10);
+  const subjectMap = new Map();
+  for (const row of localRows) {
+    const industry = row[cols["一级行业"]] || "未填写";
+    if (!subjectMap.has(industry)) subjectMap.set(industry, new Set());
+    if (row[cols["广告主主体"]]) subjectMap.get(industry).add(row[cols["广告主主体"]]);
+  }
+  const subjects = topWithOther([...subjectMap.entries()].map(([label, set]) => ({ label, value: set.size })), 10);
+  chart("industrySpendChart", "bar", spend.map(x => x.label), [
+    { label: "非赠款消耗", data: spend.map(x => x.value), backgroundColor: palette.blue }
+  ], {
+    indexAxis: "y",
+    layout: { padding: { right: 42 } },
+    scales: {
+      x: { beginAtZero: true, grace: "14%", grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
+      y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
+    },
+    plugins: {
+      legend: { display: false },
+      publicBarLabel: { enabled: true, formatter: value => `${fmtWan(value)}w`, color: palette.blue }
+    }
+  });
+  chart("industrySubjectChart", "bar", subjects.map(x => x.label), [
+    { label: "主体个数", data: subjects.map(x => x.value), backgroundColor: palette.green }
+  ], {
+    indexAxis: "y",
+    countAxis: true,
+    layout: { padding: { right: 34 } },
+    scales: {
+      x: { beginAtZero: true, grace: "14%", grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0, callback: v => fmtMoney(v) } },
+      y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
+    },
+    plugins: {
+      legend: { display: false },
+      publicBarLabel: { enabled: true, formatter: value => `${fmtMoney(value)}个`, color: palette.green }
+    }
+  });
+}
 
 function applyFilters() {
   const s = $("startDate").value || dataDateMin(rows);
@@ -834,6 +881,7 @@ function renderDashboard() {
     bizMetric("代充值", recharge, "biz-recharge"),
     bizMetric("代运营", operate, "biz-operate"),
   ].join("");
+  renderIndustryDashboard(dashboardFiltered);
 
   renderDailyMetrics(y, prev, sourceRows, dashboardFiltered);
   const dates = [...new Set(dashboardFiltered.map(r => r[cols.date]))].sort();
