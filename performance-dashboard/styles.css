@@ -952,6 +952,12 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   color: var(--text);
   font-size: 12px;
   font-weight: 800;
+  cursor: help;
+  transition: background .15s ease, transform .15s ease;
+}
+.gradeRow span:hover {
+  background: #eaf1ff;
+  transform: translateY(-1px);
 }
 .gradeRow span em {
   color: var(--muted);

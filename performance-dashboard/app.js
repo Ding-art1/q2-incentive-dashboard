@@ -1560,28 +1560,33 @@ function salesGradeMix(list) {
   for (const row of list) {
     const sales = row[cols["商务"]] || "未填写";
     const project = row[cols["项目"]] || row[cols["商机名称"]] || "未填写";
-    const key = `${sales}|${project}`;
-    projectBuckets.set(key, (projectBuckets.get(key) || 0) + Number(row[cols["非赠款消耗"]] || 0));
+    const key = `${sales}|||${project}`;
+    if (!projectBuckets.has(key)) projectBuckets.set(key, { sales, project, spend: 0 });
+    projectBuckets.get(key).spend += Number(row[cols["非赠款消耗"]] || 0);
   }
   const salesMap = new Map();
-  for (const [key, spend] of projectBuckets.entries()) {
+  for (const { sales, project, spend } of projectBuckets.values()) {
     if (spend <= 0) continue;
-    const [sales] = key.split("|");
     if (!salesMap.has(sales)) {
       salesMap.set(sales, {
         name: sales,
         totalSpend: 0,
         totalCount: 0,
         spend: Object.fromEntries(gradeOrder.map(level => [level, 0])),
-        count: Object.fromEntries(gradeOrder.map(level => [level, 0]))
+        count: Object.fromEntries(gradeOrder.map(level => [level, 0])),
+        items: Object.fromEntries(gradeOrder.map(level => [level, []]))
       });
     }
     const bucket = salesMap.get(sales);
     const level = grade(spend);
     bucket.spend[level] += spend;
     bucket.count[level] += 1;
+    bucket.items[level].push({ project, spend });
     bucket.totalSpend += spend;
     bucket.totalCount += 1;
+  }
+  for (const bucket of salesMap.values()) {
+    for (const level of gradeOrder) bucket.items[level].sort((a, b) => b.spend - a.spend);
   }
   return [...salesMap.values()].sort((a, b) => b.totalSpend - a.totalSpend);
 }
@@ -1618,7 +1623,9 @@ function renderSalesGradeRows(id, sales, mode) {
       const value = x[mode][level] || 0;
       const label = mode === "spend" ? `${fmtWan(value)}w` : `${fmtMoney(value)}个`;
       const pct = total ? value / total * 100 : 0;
-      return `<span><b class="grade ${level}">${level}</b>${label}<em>${pctFmt.format(pct)}%</em></span>`;
+      const customers = (x.items[level] || []).map(item => `${item.project} ${fmtWan(item.spend)}w`);
+      const tip = customers.length ? `${x.name} ${level}级客户：\n${customers.join("\n")}` : `${x.name} ${level}级暂无客户`;
+      return `<span class="gradeCell" title="${esc(tip)}"><b class="grade ${level}">${level}</b>${label}<em>${pctFmt.format(pct)}%</em></span>`;
     }).join("");
     return `<div class="gradeRow"><strong>${esc(x.name)}</strong><div>${cells}</div></div>`;
   }).join("") || `<div class="empty small">暂无等级分布数据</div>`;
