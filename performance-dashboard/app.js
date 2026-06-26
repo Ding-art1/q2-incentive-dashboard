@@ -425,7 +425,7 @@ function uploadedRecords() {
     return (item.rows || [])
       .map(values => Object.fromEntries(columns.map((col, i) => [col, values[i]])))
       .map(row => uploadedRecordFromObject(row, item))
-      .filter(Boolean);
+      .filter(row => row && row[cols.date] > meta.dateMax);
   });
 }
 function recordKey(row) {
