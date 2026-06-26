@@ -1040,19 +1040,34 @@ function renderDailyView() {
     return metric(`${item.name}当前平均日耗`, `${fmtWan(avgDaily(list))}w`, "", item.cls);
   }).join("");
   const historyMonths = periodMonths(annualRows).filter(month => month < currentMonth).sort();
-  $("dailyMonthAvgTitle").textContent = `${year} 历史月份平均日耗`;
-  chart("dailyMonthAvgChart", "bar", historyMonths, business.map(item => ({
-    label: item.name,
-    data: historyMonths.map(month => avgDaily(bizRows(annualRows.filter(r => r[cols.monthKey] === month), item.name))),
-    backgroundColor: item.color
-  })));
   const dates = [...new Set(currentMonthRows.map(r => r[cols.date]))].sort();
-  $("dailyTrendTitle").textContent = `${currentMonth} 每日日耗`;
-  chart("dailyTrend", "line", dates, business.map(item => {
+  const labels = [...historyMonths, ...dates];
+  $("dailyTrendTitle").textContent = `${year} 日耗趋势（月均 + ${currentMonth} 每日）`;
+  const datasets = business.flatMap(item => {
     const list = bizRows(currentMonthRows, item.name);
     const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
-    return { label: item.name, data: dates.map(date => map.get(date) || 0), borderColor: item.color, backgroundColor: "rgba(82,119,246,.12)", tension: .25 };
-  }));
+    return [
+      {
+        type: "bar",
+        label: `${item.name}历史月均`,
+        data: [...historyMonths.map(month => avgDaily(bizRows(annualRows.filter(r => r[cols.monthKey] === month), item.name))), ...dates.map(() => null)],
+        backgroundColor: item.color,
+        borderColor: item.color,
+        order: 2
+      },
+      {
+        type: "line",
+        label: `${item.name}当前月每日`,
+        data: [...historyMonths.map(() => null), ...dates.map(date => map.get(date) || 0)],
+        borderColor: item.color,
+        backgroundColor: "rgba(82,119,246,.08)",
+        pointRadius: 2,
+        tension: .25,
+        order: 1
+      }
+    ];
+  });
+  chart("dailyTrend", "bar", labels, datasets);
 }
 function renderWeeklyDashboard(start, end, sourceFiltered = filtered) {
   const weekStart = startOfWeek(end);
