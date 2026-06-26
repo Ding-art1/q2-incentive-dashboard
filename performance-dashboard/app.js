@@ -98,6 +98,14 @@ function dataDateMax(list = allRows) {
   const dates = [...new Set(list.map(r => r[cols.date]).filter(Boolean))].sort();
   return dates[dates.length - 1] || meta.dateMax;
 }
+function latestDateInRows(list = allRows, end = "") {
+  const dates = [...new Set(list.map(r => r[cols.date]).filter(Boolean).filter(d => !end || d <= end))].sort();
+  return dates[dates.length - 1] || end || dataDateMax(list);
+}
+function previousDateInRows(list = allRows, date = "") {
+  const dates = [...new Set(list.map(r => r[cols.date]).filter(Boolean).filter(d => !date || d < date))].sort();
+  return dates[dates.length - 1] || (date ? prevDate(date, 1) : "");
+}
 function dataMonths(list = allRows) { return [...new Set(list.map(r => r[cols.monthKey]).filter(Boolean))].sort(); }
 function sum(list, idx = cols["非赠款消耗"]) { return list.reduce((acc, row) => acc + Number(row[idx] || 0), 0); }
 function esc(v) { return `${v ?? ""}`.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch])); }
@@ -359,9 +367,13 @@ function canonicalUploadRow(row) {
     "项目": pickField(source, uploadAliases.project)
   };
 }
-function uploadedRecordFromObject(row) {
+function uploadDateOverride(item = {}) {
+  const match = `${item.fileName || ""}`.match(/incremental[_-](\d{4}-\d{2}-\d{2})/i);
+  return match ? match[1] : "";
+}
+function uploadedRecordFromObject(row, item = {}) {
   const canonical = canonicalUploadRow(row);
-  const date = normalizeDateValue(canonical["日期"]);
+  const date = uploadDateOverride(item) || normalizeDateValue(canonical["日期"]);
   if (!date) return null;
   const d = dateObj(date);
   const monthKey = date.slice(0, 7);
@@ -397,7 +409,7 @@ function uploadedRecords() {
     const columns = item.columns || [];
     return (item.rows || [])
       .map(values => Object.fromEntries(columns.map((col, i) => [col, values[i]])))
-      .map(uploadedRecordFromObject)
+      .map(row => uploadedRecordFromObject(row, item))
       .filter(Boolean);
   });
 }
@@ -765,9 +777,11 @@ function renderPublicity() {
     }
   });
 
-  const y = prevDate(end, 1);
+  const y = latestDateInRows(localRows, end);
   const yRows = localRows.filter(r => r[cols.date] === y);
   const yRank = group(yRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
+  const publicYesterdayTitle = $("publicYesterdayRankTitle");
+  if (publicYesterdayTitle) publicYesterdayTitle.textContent = `${y.slice(5)}消耗排行`;
   chart("publicYesterdayRankChart", "bar", yRank.map(x => x.label), [
     { label: "昨日消耗", data: yRank.map(x => x.value), backgroundColor: palette.red }
   ], {
@@ -790,8 +804,8 @@ function renderDashboard() {
   const dashboardFiltered = filteredFor(sourceRows);
   const end = $("endDate").value || dataDateMax(sourceRows);
   const start = $("startDate").value || dataDateMin(sourceRows);
-  const y = prevDate(end, 1);
-  const prev = prevDate(y, 1);
+  const y = latestDateInRows(dashboardFiltered, end);
+  const prev = previousDateInRows(dashboardFiltered, y);
   const yRows = sourceRows.filter(r => r[cols.date] === y && dashboardFiltered.includes(r));
   const prevRows = sourceRows.filter(r => r[cols.date] === prev && dashboardFiltered.includes(r));
   const local = bizRows(dashboardFiltered, "本地推");
@@ -1055,7 +1069,8 @@ function targetChartLabel(row) {
 
 function renderReports() {
   const end = $("endDate").value || dataDateMax(rows);
-  const y = end;
+  const reportSource = localPushRows(rows.filter(r => r[cols.date] <= end));
+  const y = latestDateInRows(reportSource, end);
   $("dailyTitle").textContent = `${y} 数据通报`;
   $("dailySubtitle").textContent = `所有消耗口径为本地推非赠款，目标进度按当月累计计算`;
   const yRows = localPushRows(rows.filter(r => r[cols.date] === y));
