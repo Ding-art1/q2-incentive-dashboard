@@ -1926,7 +1926,7 @@ function renderCustomerLookup() {
       <span>当月非赠款消耗 <b>${fmtWan(sum(lines, "spend"))}w</b></span>
     `;
   }
-  $("customerLookupTable").innerHTML = `<thead><tr><th>查询类型</th><th>主体</th><th>归属商机</th><th>直签/渠道</th><th>项目</th><th>商务</th><th class="num">当月非赠款消耗</th></tr></thead><tbody>${lines.map(x => `<tr><td>${esc(x.kind)}</td><td>${esc(x.subject)}</td><td>${esc(x.opportunity)}</td><td>${esc(x.type)}</td><td>${esc(x.project)}</td><td>${esc(x.sales)}</td><td class="num">${fmtWan(x.spend)}w</td></tr>`).join("") || `<tr><td colspan="7" class="empty">未找到相关主体或商机</td></tr>`}</tbody>`;
+  $("customerLookupTable").innerHTML = `<thead><tr><th>主体</th><th>归属商机</th><th>直签/渠道</th><th>项目</th><th>商务</th><th class="num">当月非赠款消耗</th></tr></thead><tbody>${lines.map(x => `<tr><td>${esc(x.subject)}</td><td>${esc(x.opportunity)}</td><td>${esc(x.type)}</td><td>${esc(x.project)}</td><td>${esc(x.sales)}</td><td class="num">${fmtWan(x.spend)}w</td></tr>`).join("") || `<tr><td colspan="6" class="empty">未找到相关主体或商机</td></tr>`}</tbody>`;
 }
 
 function buildNewEntries(data) {
