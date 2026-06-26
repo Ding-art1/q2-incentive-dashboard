@@ -264,6 +264,52 @@ button { cursor: pointer; font-weight: 700; }
 }
 .block { padding: 16px; margin-bottom: 14px; }
 .block > h3 { margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid #edf1f7; }
+.dashBlock {
+  position: relative;
+  overflow: hidden;
+  border-color: var(--theme-line, var(--line));
+  background:
+    linear-gradient(90deg, var(--theme-soft, rgba(47,107,255,.06)) 0%, rgba(255,255,255,.96) 34%, #fff 100%);
+}
+.dashBlock::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--theme, var(--blue));
+}
+.dashBlock > h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #17213a;
+}
+.dashBlock > h3::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--theme, var(--blue));
+  box-shadow: 0 0 0 5px var(--theme-soft, rgba(47,107,255,.1));
+}
+.dashBlock .card {
+  border-color: var(--theme-line, var(--line));
+  background: rgba(255,255,255,.94);
+}
+.dashBlock .card h4 {
+  color: #17213a;
+  padding-left: 10px;
+  border-left: 4px solid var(--theme, var(--blue));
+}
+.dashSummary { --theme: var(--blue); --theme-soft: rgba(47,107,255,.08); --theme-line: rgba(47,107,255,.22); }
+.dashYesterday { --theme: var(--red); --theme-soft: rgba(239,45,53,.07); --theme-line: rgba(239,45,53,.2); }
+.dashDaily { --theme: #0891b2; --theme-soft: rgba(8,145,178,.08); --theme-line: rgba(8,145,178,.2); }
+.dashWeekly { --theme: #7c3aed; --theme-soft: rgba(124,58,237,.07); --theme-line: rgba(124,58,237,.2); }
+.dashOperate { --theme: var(--amber); --theme-soft: rgba(245,158,11,.1); --theme-line: rgba(245,158,11,.24); }
+.dashRecharge { --theme: var(--green); --theme-soft: rgba(22,163,74,.08); --theme-line: rgba(22,163,74,.22); }
+.dashTarget { --theme: #2563eb; --theme-soft: rgba(37,99,235,.07); --theme-line: rgba(37,99,235,.2); }
+.dashIndustry { --theme: #0d9488; --theme-soft: rgba(13,148,136,.08); --theme-line: rgba(13,148,136,.2); }
+.dashPort { --theme: #475569; --theme-soft: rgba(71,85,105,.08); --theme-line: rgba(71,85,105,.2); }
 .block > h3 .inlineBtn {
   float: right;
   min-height: 30px;

@@ -59,8 +59,8 @@
           <article class="countdownCard"><strong id="monthCountdown" class="countdownGrid">0天</strong><span id="monthCountdownLabel">距离本月结束还有</span></article>
           <article class="countdownCard"><strong id="quarterCountdown" class="countdownGrid">0天</strong><span id="quarterCountdownLabel">距离本季结束还有</span></article>
         </section>
-        <section class="block"><h3>总数据板块</h3><div class="metricGrid" id="dashboardMetrics"></div></section>
-        <section class="block">
+        <section class="block dashBlock dashSummary"><h3>总数据板块</h3><div class="metricGrid" id="dashboardMetrics"></div></section>
+        <section class="block dashBlock dashYesterday">
           <h3>昨日消耗板块</h3>
           <div class="metricGrid" id="dailyMetrics"></div>
           <div class="grid two">
@@ -68,14 +68,14 @@
             <article class="card"><h4>昨日渠道消耗降序</h4><div id="yChannelRank" class="rankList"></div></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block dashBlock dashDaily">
           <h3>日耗板块</h3>
           <div class="metricGrid" id="avgDailyMetrics"></div>
           <div class="grid">
             <article class="card wide"><h4 id="dailyTrendTitle">日耗视图</h4><canvas id="dailyTrend"></canvas></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block dashBlock dashWeekly">
           <h3>周耗板块</h3>
           <div class="metricGrid" id="weeklyMetrics"></div>
           <div class="grid three">
@@ -84,14 +84,14 @@
             <article class="card"><h4>代运营周与周消耗对比</h4><canvas id="operateWeekChart"></canvas></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block dashBlock dashOperate">
           <h3>代运营板块</h3>
           <div class="metricGrid" id="operateMetrics"></div>
           <div class="grid">
             <article class="card wide"><h4>代运营各项目日耗曲线</h4><div id="operateProjectDailyGrid" class="miniChartGrid"></div></article>
           </div>
         </section>
-        <section class="block rechargeDashboardBlock">
+        <section class="block dashBlock dashRecharge rechargeDashboardBlock">
           <h3>代充值板块</h3>
           <div class="metricGrid" id="rechargeMetrics"></div>
           <div class="grid three">
@@ -99,7 +99,7 @@
             <article class="card"><h4>销售组本周代充值消耗</h4><canvas id="rechargeTeamWeekChart"></canvas></article>
           </div>
         </section>
-        <section class="block targetOverviewBlock">
+        <section class="block dashBlock dashTarget targetOverviewBlock">
           <h3>目标达成总览</h3>
           <div class="grid three">
             <article class="card"><h4>业务目标达成</h4><canvas id="dashboardBusinessTargetChart"></canvas></article>
@@ -107,14 +107,14 @@
             <article class="card"><h4>商务个人目标达成</h4><canvas id="dashboardPersonTargetChart"></canvas></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block dashBlock dashIndustry">
           <h3>一级行业分布</h3>
           <div class="grid two">
             <article class="card"><h4>一级行业消耗分布</h4><canvas id="industrySpendChart"></canvas></article>
             <article class="card"><h4>一级行业主体个数分布</h4><canvas id="industrySubjectChart"></canvas></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block dashBlock dashPort">
           <h3>端口板块</h3>
           <div class="grid two">
             <article class="card"><h4>海南/深圳端口日耗趋势图</h4><canvas id="portDailyChart"></canvas></article>
