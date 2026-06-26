@@ -541,7 +541,15 @@ const publicBarLabelPlugin = {
     chartInstance.getDatasetMeta(0).data.forEach((bar, index) => {
       const raw = dataset.data[index];
       const text = formatter(raw);
-      const x = Math.min(bar.x + 8, chartArea.right - ctx.measureText(text).width - 2);
+      const width = ctx.measureText(text).width;
+      const rightX = bar.x + 8;
+      const insideX = bar.x - width - 8;
+      const x = rightX + width <= chartArea.right
+        ? rightX
+        : insideX > chartArea.left + 4
+          ? insideX
+          : chartArea.right - width - 2;
+      ctx.fillStyle = x === insideX ? "#fff" : (pluginOptions.color || palette.blue);
       ctx.fillText(text, x, bar.y);
     });
     ctx.restore();
@@ -728,8 +736,9 @@ function renderPublicity() {
     { label: "完成率", data: completion.map(x => x.pct), backgroundColor: palette.blue }
   ], {
     indexAxis: "y",
+    layout: { padding: { right: 34 } },
     scales: {
-      x: { beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
+      x: { beginAtZero: true, grace: "10%", grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
       y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
     },
     plugins: {
@@ -745,6 +754,11 @@ function renderPublicity() {
     { label: "M月消耗", data: monthRank.map(x => x.value), backgroundColor: palette.blue }
   ], {
     indexAxis: "y",
+    layout: { padding: { right: 38 } },
+    scales: {
+      x: { beginAtZero: true, grace: "12%", grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
+      y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
+    },
     plugins: {
       legend: { display: false },
       publicBarLabel: { enabled: true, formatter: value => `${fmtWan(value)}w`, color: palette.blue }
@@ -758,6 +772,11 @@ function renderPublicity() {
     { label: "昨日消耗", data: yRank.map(x => x.value), backgroundColor: palette.red }
   ], {
     indexAxis: "y",
+    layout: { padding: { right: 34 } },
+    scales: {
+      x: { beginAtZero: true, grace: "12%", grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
+      y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
+    },
     plugins: {
       legend: { display: false },
       publicBarLabel: { enabled: true, formatter: value => `${fmtWan(value)}w`, color: palette.red }
