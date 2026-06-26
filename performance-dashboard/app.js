@@ -1402,7 +1402,7 @@ function samePeriodRows(month, day) {
   return customerFilterRowsForMonth(month, `${month}-${String(endDay).padStart(2, "0")}`);
 }
 function firstSpendMonthForProject(project, year) {
-  const hit = rows
+  const hit = allRows
     .filter(r => isLocalPushRow(r) && r[cols["项目"]] === project && r[cols.monthKey].startsWith(`${year}-`) && Number(r[cols["非赠款消耗"]] || 0) > 0)
     .sort((a, b) => a[cols.date].localeCompare(b[cols.date]))[0];
   return hit ? hit[cols["月份"]] : "-";
