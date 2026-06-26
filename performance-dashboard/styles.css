@@ -722,6 +722,26 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   gap: 10px;
   margin-bottom: 12px;
 }
+.lookupSummary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: -2px 0 12px;
+  min-height: 32px;
+  align-items: center;
+}
+.lookupSummary span {
+  border: 1px solid var(--line);
+  background: #f8fbff;
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.lookupSummary b {
+  color: var(--blue);
+}
 .lookupResult {
   margin-bottom: 12px;
   max-height: 260px;

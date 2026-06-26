@@ -1646,6 +1646,7 @@ function renderCustomerLookup() {
   if (!$("customerLookupTable")) return;
   const keyword = ($("customerLookupInput").value || "").trim();
   if (!keyword) {
+    if ($("customerLookupSummary")) $("customerLookupSummary").innerHTML = `<span>输入关键词后显示汇总</span>`;
     $("customerLookupTable").innerHTML = `<tbody><tr><td class="empty">输入主体或商机名称后查询归属关系和当月消耗</td></tr></tbody>`;
     return;
   }
@@ -1678,6 +1679,16 @@ function renderCustomerLookup() {
     }
   }
   lines.sort((a, b) => b.spend - a.spend);
+  if ($("customerLookupSummary")) {
+    const subjectCount = uniqueCount(lines, x => x.subject);
+    const opportunityCount = uniqueCount(lines, x => x.opportunity);
+    $("customerLookupSummary").innerHTML = `
+      <span>命中 <b>${fmtMoney(lines.length)}</b> 条</span>
+      <span>主体 <b>${fmtMoney(subjectCount)}</b> 个</span>
+      <span>商机 <b>${fmtMoney(opportunityCount)}</b> 个</span>
+      <span>当月非赠款消耗 <b>${fmtWan(sum(lines, "spend"))}w</b></span>
+    `;
+  }
   $("customerLookupTable").innerHTML = `<thead><tr><th>查询类型</th><th>主体</th><th>归属商机</th><th>直签/渠道</th><th>项目</th><th>商务</th><th class="num">当月非赠款消耗</th></tr></thead><tbody>${lines.map(x => `<tr><td>${esc(x.kind)}</td><td>${esc(x.subject)}</td><td>${esc(x.opportunity)}</td><td>${esc(x.type)}</td><td>${esc(x.project)}</td><td>${esc(x.sales)}</td><td class="num">${fmtWan(x.spend)}w</td></tr>`).join("") || `<tr><td colspan="7" class="empty">未找到相关主体或商机</td></tr>`}</tbody>`;
 }
 
