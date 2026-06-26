@@ -39,6 +39,9 @@ body.not-admin .restrictedOnly,
 body.admin-user .userOnly {
   display: none !important;
 }
+body.person-user .nav[data-panel="dashboard"] {
+  display: none !important;
+}
 body.person-user.my-dashboard-active .rechargeDashboardBlock {
   display: none;
 }

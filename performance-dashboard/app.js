@@ -2118,16 +2118,22 @@ function init() {
   $("targetMonth").innerHTML = months.map(month => `<option>${esc(month)}</option>`).join("");
   $("targetMonth").value = monthOf(maxDate);
   refreshTargetNameOptions();
+  const activatePanel = panel => {
+    const btn = document.querySelector(`.nav[data-panel="${panel}"]`);
+    if (!btn) return;
+    document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
+    btn.classList.add("active");
+    document.body.classList.toggle("my-dashboard-active", panel === "myDashboard");
+    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
+    $(panel === "myDashboard" ? "dashboard" : panel).classList.add("active");
+    if (panel === "dashboard" || panel === "myDashboard") renderDashboard();
+    if (panel === "publicity") renderPublicity();
+  };
   document.querySelectorAll(".nav[data-panel]").forEach(btn => btn.onclick = () => {
     if ((btn.classList.contains("adminOnly") || btn.classList.contains("restrictedOnly")) && !isAdmin()) return;
     if (btn.classList.contains("userOnly") && isAdmin()) return;
-    document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
-    btn.classList.add("active");
-    document.body.classList.toggle("my-dashboard-active", btn.dataset.panel === "myDashboard");
-    document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
-    $(btn.dataset.panel === "myDashboard" ? "dashboard" : btn.dataset.panel).classList.add("active");
-    if (btn.dataset.panel === "dashboard" || btn.dataset.panel === "myDashboard") renderDashboard();
-    if (btn.dataset.panel === "publicity") renderPublicity();
+    if (btn.dataset.panel === "dashboard" && currentUser?.role === "person") return;
+    activatePanel(btn.dataset.panel);
   });
   $("applyFilters").onclick = applyFilters;
   $("resetFilters").onclick = () => { const max = dataDateMax(allRows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
@@ -2190,6 +2196,7 @@ function init() {
     e.target.value = "";
   };
   applyFilters();
+  if (currentUser?.role === "person") activatePanel("myDashboard");
 }
 async function bootstrap() {
   const user = savedAuthUser();
