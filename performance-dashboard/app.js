@@ -733,6 +733,38 @@ function filteredFor(list) {
 function dashboardSourceRows() {
   return document.body.classList.contains("my-dashboard-active") ? rows : allRows;
 }
+let countdownTimer = null;
+
+function countdownParts(target) {
+  const diff = Math.max(0, target.getTime() - Date.now());
+  const days = Math.floor(diff / 86400000);
+  const hours = Math.floor((diff % 86400000) / 3600000);
+  const minutes = Math.floor((diff % 3600000) / 60000);
+  const seconds = Math.floor((diff % 60000) / 1000);
+  return { days, hours, minutes, seconds };
+}
+
+function countdownMarkup(parts) {
+  return [
+    ["天", parts.days],
+    ["时", parts.hours],
+    ["分", parts.minutes],
+    ["秒", parts.seconds]
+  ].map(([label, value]) => `<span class="countUnit"><b>${String(value).padStart(2, "0")}</b><i>${label}</i></span>`).join("");
+}
+
+function updateCountdownClock() {
+  const now = new Date();
+  const monthTarget = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const qStartMonth = Math.floor(now.getMonth() / 3) * 3;
+  const quarterTarget = new Date(now.getFullYear(), qStartMonth + 3, 1);
+  const monthLabel = $("monthCountdownLabel");
+  const quarterLabel = $("quarterCountdownLabel");
+  if (monthLabel) monthLabel.textContent = `距离M${now.getMonth() + 1}结束还有`;
+  if (quarterLabel) quarterLabel.textContent = `距离Q${Math.floor(now.getMonth() / 3) + 1}结束还有`;
+  if ($("monthCountdown")) $("monthCountdown").innerHTML = countdownMarkup(countdownParts(monthTarget));
+  if ($("quarterCountdown")) $("quarterCountdown").innerHTML = countdownMarkup(countdownParts(quarterTarget));
+}
 
 function renderTime() {
   const end = $("endDate").value || dataDateMax(rows);
@@ -748,8 +780,7 @@ function renderTime() {
   const qDays = Math.floor((qEnd - qStart) / 86400000) + 1;
   $("monthProgress").textContent = `${pctFmt.format(elapsed / monthDays * 100)}%`;
   $("quarterProgress").textContent = `${pctFmt.format(qElapsed / qDays * 100)}%`;
-  $("monthCountdown").textContent = `${Math.max(0, monthDays - elapsed)}天`;
-  $("quarterCountdown").textContent = `${Math.max(0, qDays - qElapsed)}天`;
+  updateCountdownClock();
 }
 
 function setPublicBar(id, value) {
@@ -2197,6 +2228,7 @@ function init() {
   };
   applyFilters();
   if (currentUser?.role === "person") activatePanel("myDashboard");
+  if (!countdownTimer) countdownTimer = setInterval(updateCountdownClock, 1000);
 }
 async function bootstrap() {
   const user = savedAuthUser();
