@@ -148,7 +148,27 @@ function portRegion(portId) {
 function rowPortRegion(row) {
   return row[cols["端口归属"]] || portRegion(row[cols["端口ID"]]) || "未填写";
 }
-function uploadHistory() { return JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]"); }
+function uploadDateFromFileName(fileName = "") {
+  const match = `${fileName || ""}`.match(/incremental[_-](\d{4}-\d{2}-\d{2})/i);
+  return match ? match[1] : "";
+}
+function uploadHistoryIdentity(item = {}) {
+  const date = uploadDateFromFileName(item.fileName);
+  if (date) return `incremental:${date}`;
+  const first = (item.rows || [])[0] || [];
+  const last = (item.rows || [])[(item.rows || []).length - 1] || [];
+  return [item.fileName || "", item.rowCount || 0, (item.rows || []).length, first.join("|"), last.join("|")].join("::");
+}
+function compactUploadHistory(items = []) {
+  const seen = new Set();
+  return [...items].sort((a, b) => `${b.uploadedAt || ""}`.localeCompare(`${a.uploadedAt || ""}`)).filter(item => {
+    const key = uploadHistoryIdentity(item);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+function uploadHistory() { return compactUploadHistory(JSON.parse(localStorage.getItem(uploadHistoryKey) || "[]")); }
 function setUploadHistory(v) { localStorage.setItem(uploadHistoryKey, JSON.stringify(v)); }
 function cloudStatus(message, tone = "") {
   const el = $("cloudStatus");
@@ -162,13 +182,7 @@ function uploadFingerprint(item) {
   return [item.fileName || "", item.rowCount || 0, (item.rows || []).length, first.join("|"), last.join("|")].join("::");
 }
 function mergeUploadHistory(local, cloud) {
-  const seen = new Set();
-  return [...(cloud || []), ...(local || [])].filter(item => {
-    const key = uploadFingerprint(item);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  }).sort((a, b) => `${b.uploadedAt || ""}`.localeCompare(`${a.uploadedAt || ""}`)).slice(0, 80);
+  return compactUploadHistory([...(cloud || []), ...(local || [])]).slice(0, 80);
 }
 function cloudSnapshot() {
   return {
@@ -368,8 +382,7 @@ function canonicalUploadRow(row) {
   };
 }
 function uploadDateOverride(item = {}) {
-  const match = `${item.fileName || ""}`.match(/incremental[_-](\d{4}-\d{2}-\d{2})/i);
-  return match ? match[1] : "";
+  return uploadDateFromFileName(item.fileName);
 }
 function uploadedRecordFromObject(row, item = {}) {
   const canonical = canonicalUploadRow(row);
@@ -2029,15 +2042,16 @@ function init() {
     const columns = data.length ? Object.keys(data[0]) : [];
     const bodyRows = data.map(row => columns.map(col => row[col]));
     const newItems = buildNewEntries(data);
-    const history = uploadHistory();
-    history.unshift({
+    const nextUpload = {
       uploadedAt: new Date().toLocaleString("zh-CN", { hour12: false }),
       fileName: file.name,
       rowCount: data.length,
       newOpportunities: newItems,
       columns,
       rows: bodyRows
-    });
+    };
+    const history = uploadHistory().filter(item => uploadHistoryIdentity(item) !== uploadHistoryIdentity(nextUpload));
+    history.unshift(nextUpload);
     setUploadHistory(history.slice(0, 20));
     rebuildAllRows();
     rows = scopedRowsFor(currentUser);
