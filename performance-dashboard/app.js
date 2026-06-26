@@ -622,12 +622,33 @@ function chart(id, type, labels, datasets, options = {}) {
 function metric(title, value, sub = "", cls = "") {
   return `<article class="metric ${cls}"><strong>${esc(value)}</strong><span>${esc(title)}</span>${sub ? `<em>${esc(sub)}</em>` : ""}</article>`;
 }
+function metricProgress(title, value, actual, target, timePct, cls = "") {
+  const completePct = target ? actual / target * 100 : 0;
+  const gap = completePct - (timePct || 0);
+  const gapCls = gap >= 0 ? "good" : "bad";
+  return `<article class="metric progressMetric ${cls}">
+    <strong>${esc(value)}</strong>
+    <span>${esc(title)}</span>
+    <em>目标 ${fmtWan(target)}w｜达成 ${pctFmt.format(completePct)}%</em>
+    <div class="metricProgressBar">
+      <i class="fill" style="width:${Math.max(0, Math.min(100, completePct || 0))}%"></i>
+      <i class="timeMark" style="left:${Math.max(0, Math.min(100, timePct || 0))}%"></i>
+    </div>
+    <div class="metricGap"><span>时间进度 ${pctFmt.format(timePct || 0)}%</span><b class="${gapCls}">${gap >= 0 ? "领先" : "落后"} ${pctFmt.format(Math.abs(gap))}pct</b></div>
+  </article>`;
+}
 function bizRows(list, name) {
   if (name === "本地推") return localPushRows(list);
   return localPushRows(list).filter(r => r[cols["合作模式-DOSS"]] === name);
 }
 function periodMonths(list) {
   return [...new Set(list.map(r => r[cols.monthKey]).filter(Boolean))];
+}
+function monthTargetProgress(monthKey, endDate) {
+  const endMonth = monthOf(endDate);
+  if (monthKey < endMonth) return 100;
+  if (monthKey > endMonth) return 0;
+  return monthProgressFor(endDate);
 }
 function targetForPeriod(name, list) {
   return periodMonths(list).reduce((acc, month) => acc + (targetFor(month, "business", name).spend || 0), 0);
@@ -642,6 +663,24 @@ function scopedDashboardTargetForPeriod(name, list) {
     return months.reduce((acc, month) => acc + (targetFor(month, "team", currentUser.team, name).spend || 0), 0);
   }
   return targetForPeriod(name, list);
+}
+function scopedDashboardTimeProgressForPeriod(name, list, endDate) {
+  const months = periodMonths(list);
+  let total = 0;
+  let expected = 0;
+  for (const month of months) {
+    let target = 0;
+    if (document.body.classList.contains("my-dashboard-active") && currentUser?.role === "person") {
+      target = targetFor(month, "person", currentUser.person, name).spend || 0;
+    } else if (document.body.classList.contains("my-dashboard-active") && currentUser?.role === "team") {
+      target = targetFor(month, "team", currentUser.team, name).spend || 0;
+    } else {
+      target = targetFor(month, "business", name).spend || 0;
+    }
+    total += target;
+    expected += target * monthTargetProgress(month, endDate) / 100;
+  }
+  return total ? expected / total * 100 : monthProgressFor(endDate);
 }
 function startOfWeek(date) {
   const d = dateObj(date);
@@ -907,7 +946,8 @@ function renderDashboard() {
   const bizMetric = (name, list, cls) => {
     const actual = sum(list);
     const target = scopedDashboardTargetForPeriod(name, dashboardFiltered);
-    return metric(`${name}实绩`, `${fmtWan(actual)}w`, `目标 ${fmtWan(target)}w｜达成 ${fmtPct(actual, target)}`, cls);
+    const timePct = scopedDashboardTimeProgressForPeriod(name, dashboardFiltered, end);
+    return metricProgress(`${name}实绩`, `${fmtWan(actual)}w`, actual, target, timePct, cls);
   };
   $("dashboardMetrics").innerHTML = [
     bizMetric("本地推", local, "biz-local"),

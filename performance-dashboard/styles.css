@@ -222,6 +222,46 @@ button { cursor: pointer; font-weight: 700; }
   font-weight: 800;
 }
 .metric em { display: block; margin-top: 4px; color: #43516a; font-style: normal; font-size: 12px; }
+.progressMetric { min-height: 132px; }
+.metricProgressBar {
+  position: relative;
+  height: 10px;
+  margin-top: 12px;
+  overflow: visible;
+  border-radius: 999px;
+  background: #eaf0f8;
+}
+.metricProgressBar .fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--blue), #4aa3ff);
+}
+.biz-recharge .metricProgressBar .fill { background: linear-gradient(90deg, var(--green), #35d3a0); }
+.biz-operate .metricProgressBar .fill { background: linear-gradient(90deg, var(--orange), #ffbd4a); }
+.metricProgressBar .timeMark {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 18px;
+  border-radius: 999px;
+  background: #0f172a;
+  box-shadow: 0 0 0 2px rgba(15,23,42,.08);
+}
+.metricGap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 9px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.metricGap b {
+  white-space: nowrap;
+  font-size: 13px;
+}
 .block { padding: 16px; margin-bottom: 14px; }
 .block > h3 { margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid #edf1f7; }
 .block > h3 .inlineBtn {
