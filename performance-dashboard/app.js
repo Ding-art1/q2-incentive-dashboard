@@ -393,6 +393,29 @@ function targetVisible(row) {
   return false;
 }
 
+const publicBarLabelPlugin = {
+  id: "publicBarLabel",
+  afterDatasetsDraw(chartInstance, _args, pluginOptions) {
+    if (!pluginOptions?.enabled) return;
+    const { ctx, chartArea } = chartInstance;
+    const dataset = chartInstance.data.datasets[0];
+    if (!dataset) return;
+    const formatter = pluginOptions.formatter || (value => value);
+    ctx.save();
+    ctx.font = "700 12px Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+    ctx.fillStyle = pluginOptions.color || palette.blue;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    chartInstance.getDatasetMeta(0).data.forEach((bar, index) => {
+      const raw = dataset.data[index];
+      const text = formatter(raw);
+      const x = Math.min(bar.x + 8, chartArea.right - ctx.measureText(text).width - 2);
+      ctx.fillText(text, x, bar.y);
+    });
+    ctx.restore();
+  }
+};
+
 function chart(id, type, labels, datasets, options = {}) {
   if (!$(id)) return;
   if (charts[id]) charts[id].destroy();
@@ -401,6 +424,7 @@ function chart(id, type, labels, datasets, options = {}) {
   charts[id] = new Chart($(id), {
     type,
     data: { labels, datasets },
+    plugins: [publicBarLabelPlugin],
     options: {
       responsive: true,
       maintainAspectRatio: false,
@@ -576,21 +600,37 @@ function renderPublicity() {
       x: { beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
       y: { grid: { color: palette.grid }, ticks: { color: palette.tick, autoSkip: false } }
     },
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `完成率：${pctFmt.format(ctx.parsed.x)}%` } } }
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => `完成率：${pctFmt.format(ctx.parsed.x)}%` } },
+      publicBarLabel: { enabled: true, formatter: value => `${pctFmt.format(value)}%`, color: palette.blue }
+    }
   });
 
   const monthRank = group(monthRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
   $("publicMonthRankTitle").textContent = `M${monthNum}消耗排行`;
   chart("publicMonthRankChart", "bar", monthRank.map(x => x.label), [
     { label: "M月消耗", data: monthRank.map(x => x.value), backgroundColor: palette.blue }
-  ], { indexAxis: "y", plugins: { legend: { display: false } } });
+  ], {
+    indexAxis: "y",
+    plugins: {
+      legend: { display: false },
+      publicBarLabel: { enabled: true, formatter: value => `${fmtWan(value)}w`, color: palette.blue }
+    }
+  });
 
   const y = prevDate(end, 1);
   const yRows = localRows.filter(r => r[cols.date] === y);
   const yRank = group(yRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
   chart("publicYesterdayRankChart", "bar", yRank.map(x => x.label), [
     { label: "昨日消耗", data: yRank.map(x => x.value), backgroundColor: palette.red }
-  ], { indexAxis: "y", plugins: { legend: { display: false } } });
+  ], {
+    indexAxis: "y",
+    plugins: {
+      legend: { display: false },
+      publicBarLabel: { enabled: true, formatter: value => `${fmtWan(value)}w`, color: palette.red }
+    }
+  });
 }
 
 function renderDashboard() {
