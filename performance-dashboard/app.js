@@ -1098,9 +1098,6 @@ function renderOperateDashboard(y, dates, operateRows, sourceRows = rows, source
 }
 function renderRechargeDashboard(y, start, end, dates, sourceRows = rows, sourceFiltered = filtered) {
   const yRows = sourceRows.filter(r => r[cols.date] === y && sourceFiltered.includes(r));
-  const weekStart = startOfWeek(end);
-  const currentStart = weekStart > start ? weekStart : start;
-  const weekRows = sourceFiltered.filter(r => r[cols.date] >= currentStart && r[cols.date] <= end);
   const teamNames = ["销售一组", "销售二组"];
   const teamMetric = (team, name, list, cls) => metric(`${team}${name}`, `${fmtWan(sum(list.filter(r => salesTeam(r) === team)))}w`, y, cls);
   $("rechargeMetrics").innerHTML = [
@@ -1115,7 +1112,23 @@ function renderRechargeDashboard(y, start, end, dates, sourceRows = rows, source
     return { label: team, data: dates.map(date => map.get(date) || 0), borderColor: [palette.blue, palette.green][i], backgroundColor: "rgba(82,119,246,.12)", tension: .25 };
   });
   chart("rechargeTeamDailyChart", "line", dates, teamDailyDatasets);
-  chart("rechargeTeamWeekChart", "bar", teamNames, [{ label: "本周代充值消耗", data: teamNames.map(team => sum(bizRows(weekRows, "代充值").filter(r => salesTeam(r) === team))), backgroundColor: [palette.blue, palette.green] }]);
+  const currentMonth = monthOf(end);
+  const monthEnd = new Date(dateObj(`${currentMonth}-01`).getFullYear(), dateObj(`${currentMonth}-01`).getMonth() + 1, 0).getDate();
+  const weekBuckets = [
+    { label: "week1", from: 1, to: 7 },
+    { label: "week2", from: 8, to: 14 },
+    { label: "week3", from: 15, to: 21 },
+    { label: "week4", from: 22, to: monthEnd }
+  ];
+  const monthRechargeRows = bizRows(sourceRows, "代充值").filter(r => r[cols.monthKey] === currentMonth && r[cols.date] <= end);
+  chart("rechargeTeamWeekChart", "bar", weekBuckets.map(x => x.label), teamNames.map((team, i) => ({
+    label: team,
+    data: weekBuckets.map(bucket => sum(monthRechargeRows.filter(r => {
+      const day = dateObj(r[cols.date]).getDate();
+      return salesTeam(r) === team && day >= bucket.from && day <= bucket.to;
+    }))),
+    backgroundColor: [palette.blue, palette.green][i]
+  })));
   renderTargetCharts("dashboardBusinessTargetChart", "dashboardTeamTargetChart", "dashboardPersonTargetChart", sourceRows, document.body.classList.contains("my-dashboard-active"));
 }
 function avgDaily(list) {
