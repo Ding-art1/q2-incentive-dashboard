@@ -49,6 +49,7 @@ body.person-user .targetOverviewBlock {
   display: none !important;
 }
 body.person-user .adminChangeView,
+body.person-user .allChangeView,
 body.admin-user .userChangeView,
 body.team-user .userChangeView {
   display: none !important;
