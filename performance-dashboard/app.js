@@ -1355,7 +1355,7 @@ function renderDailyTeams(yRows, mRows, month, date) {
   const sales = [...new Set(mRows.map(r => r[cols["商务"]]).filter(Boolean))]
     .filter(name => !noTargetSales.has(name) && targetRows(month).some(row => row.level === "person" && row.name === name && Number(row.spend || 0) > 0))
     .sort((a, b) => `${salesTeams[a] || ""}${a}`.localeCompare(`${salesTeams[b] || ""}${b}`, "zh-CN"));
-  const body = sales.map(name => {
+  const rowsForSales = sales.map(name => {
     const day = sum(yRows.filter(r => r[cols["商务"]] === name));
     const targetRowsForSales = targetRows(month).filter(row => row.level === "person" && row.name === name);
     const target = targetRowsForSales.reduce((acc, row) => acc + Number(row.spend || 0), 0);
@@ -1363,8 +1363,11 @@ function renderDailyTeams(yRows, mRows, month, date) {
       ? targetRowsForSales.reduce((acc, row) => acc + sum(actualRowsForTarget(row.month, row.level, row.name, rows, targetBusiness(row))), 0)
       : sum(mRows.filter(r => r[cols["商务"]] === name));
     const stat = progressGap(actual, target, date);
-    return `<tr><td>${esc(salesTeams[name] || "未分组")}</td><td>${esc(name)}</td><td class="num">${fmtWan(day)}w</td><td class="num">${fmtWan(actual)}w</td><td class="num">${fmtWan(target)}w</td><td class="num">${pctFmt.format(stat.complete)}%</td><td class="num ${stat.gap >= 0 ? "good" : "bad"}">${stat.gap >= 0 ? "+" : "-"}${pctFmt.format(Math.abs(stat.gap))}pct</td></tr>`;
-  }).join("");
+    return { name, day, target, actual, stat };
+  }).sort((a, b) => b.stat.gap - a.stat.gap || b.actual - a.actual);
+  const body = rowsForSales.map(({ name, day, target, actual, stat }) =>
+    `<tr><td>${esc(salesTeams[name] || "未分组")}</td><td>${esc(name)}</td><td class="num">${fmtWan(day)}w</td><td class="num">${fmtWan(actual)}w</td><td class="num">${fmtWan(target)}w</td><td class="num">${pctFmt.format(stat.complete)}%</td><td class="num ${stat.gap >= 0 ? "good" : "bad"}">${stat.gap >= 0 ? "+" : "-"}${pctFmt.format(Math.abs(stat.gap))}pct</td></tr>`
+  ).join("");
   $("dailySalesTable").innerHTML = `<thead><tr><th>商务组</th><th>商务</th><th class="num">昨日消耗</th><th class="num">月累消耗</th><th class="num">消耗目标</th><th class="num">目标完成</th><th class="num">与时间GAP</th></tr></thead><tbody>${body || `<tr><td colspan="7" class="empty">暂无商务数据</td></tr>`}</tbody>`;
 }
 function renderDailyRanks(yRows) {
