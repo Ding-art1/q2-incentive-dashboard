@@ -1326,18 +1326,31 @@ function freshCustomerCounts(month) {
 }
 
 function targetProgressRows(month, level, sourceRows = rows, scopedTargets = true) {
-  return targetRows(month)
+  const baseRows = targetRows(month)
     .filter(row => row.level === level && (!scopedTargets || targetVisible(row)))
     .map(row => {
       const biz = targetBusiness(row);
       const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, sourceRows, biz));
       const actualNew = actualNewForTarget(row.month, row.level, row.name, sourceRows, scopedTargets, biz);
       return { ...row, actualSpend, actualNew, spendPct: row.spend ? actualSpend / row.spend * 100 : 0, newPct: row.fresh ? actualNew / row.fresh * 100 : 0 };
-    })
+    });
+  if (level === "business") return baseRows.sort((a, b) => b.spendPct - a.spendPct);
+  const merged = new Map();
+  baseRows.forEach(row => {
+    const key = row.name;
+    const item = merged.get(key) || { month: row.month, level: row.level, name: row.name, biz: "", spend: 0, fresh: 0, actualSpend: 0, actualNew: 0 };
+    item.spend += Number(row.spend || 0);
+    item.fresh += Number(row.fresh || 0);
+    item.actualSpend += Number(row.actualSpend || 0);
+    item.actualNew += Number(row.actualNew || 0);
+    merged.set(key, item);
+  });
+  return [...merged.values()]
+    .map(row => ({ ...row, spendPct: row.spend ? row.actualSpend / row.spend * 100 : 0, newPct: row.fresh ? row.actualNew / row.fresh * 100 : 0 }))
     .sort((a, b) => b.spendPct - a.spendPct);
 }
 function targetChartLabel(row) {
-  return row.level === "business" ? row.name : `${row.name}-${targetBusiness(row)}`;
+  return row.name;
 }
 
 function renderReports() {
