@@ -388,7 +388,7 @@ function uploadDateOverride(item = {}) {
 }
 function uploadedRecordFromObject(row, item = {}) {
   const canonical = canonicalUploadRow(row);
-  const date = uploadDateOverride(item) || normalizeDateValue(canonical["日期"]);
+  const date = normalizeDateValue(canonical["日期"]) || uploadDateOverride(item);
   if (!date) return null;
   const d = dateObj(date);
   const monthKey = date.slice(0, 7);
