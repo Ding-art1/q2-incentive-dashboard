@@ -30,7 +30,7 @@ const users = [
 ];
 const palette = { blue: "#2f6bff", green: "#16a34a", amber: "#f59e0b", red: "#ef2d35", violet: "#5b6ee1", grid: "rgba(124,139,164,.2)", tick: "#748098" };
 const defaultTargetRows = [
-  { month: "2026-06", level: "business", name: "本地推", spend: 46_000_000, fresh: 0 },
+  { month: "2026-06", level: "business", name: "本地推", spend: 45_400_000, fresh: 0 },
   { month: "2026-06", level: "business", name: "代充值", spend: 43_000_000, fresh: 0 },
   { month: "2026-06", level: "business", name: "代运营", spend: 1_800_000, fresh: 0 },
   { month: "2026-06", level: "team", name: "销售一组", biz: "本地推", spend: 20_000_000, fresh: 0 },
