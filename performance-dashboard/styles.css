@@ -650,13 +650,13 @@ canvas { width: 100% !important; height: 280px !important; }
 }
 .dailyRankList p {
   display: grid;
-  grid-template-columns: 28px minmax(120px, 1fr) minmax(120px, 220px) 70px;
+  grid-template-columns: 54px minmax(120px, 1fr) minmax(120px, 220px) 70px;
   gap: 10px;
   align-items: center;
   margin: 0;
 }
 .dailyRankList span {
-  width: 24px;
+  width: 48px;
   height: 24px;
   display: inline-grid;
   place-items: center;
@@ -666,6 +666,12 @@ canvas { width: 100% !important; height: 280px !important; }
   font-size: 12px;
   font-weight: 800;
 }
+.dailyRankList span.top1,
+.topBadge.top1 { background: linear-gradient(135deg, #ffb020, #ff7a18); }
+.dailyRankList span.top2,
+.topBadge.top2 { background: linear-gradient(135deg, #7c8aa0, #aab6c7); }
+.dailyRankList span.top3,
+.topBadge.top3 { background: linear-gradient(135deg, #c17a36, #f0a45d); }
 .dailyRankList b {
   overflow: hidden;
   text-overflow: ellipsis;
@@ -769,6 +775,21 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
 .rankList { display: grid; gap: 8px; }
 .rankRow { display: grid; grid-template-columns: 1fr 70px 62px; gap: 8px; align-items: center; }
 .rankRow em { display: block; margin-top: 2px; color: var(--muted); font-size: 11px; font-style: normal; }
+.topBadge {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  min-width: 44px;
+  margin: 0 8px 0 0 !important;
+  padding: 0 7px;
+  border-radius: 999px;
+  color: #fff !important;
+  font-size: 10px !important;
+  font-style: normal;
+  font-weight: 900;
+  vertical-align: 1px;
+}
 .bar { height: 10px; border-radius: 999px; background: #edf1f8; overflow: hidden; }
 .bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), #58a8ff); }
 .uploadBox {

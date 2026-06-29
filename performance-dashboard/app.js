@@ -109,6 +109,12 @@ function previousDateInRows(list = allRows, date = "") {
 function dataMonths(list = allRows) { return [...new Set(list.map(r => r[cols.monthKey]).filter(Boolean))].sort(); }
 function sum(list, idx = cols["非赠款消耗"]) { return list.reduce((acc, row) => acc + Number(row[idx] || 0), 0); }
 function esc(v) { return `${v ?? ""}`.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch])); }
+function rankBadge(index) {
+  return index < 3 ? `<em class="topBadge top${index + 1}">TOP${index + 1}</em>` : "";
+}
+function chartRankLabel(label, index) {
+  return index < 3 ? `TOP${index + 1} ${label}` : label;
+}
 function monthOf(date) { return date.slice(0, 7); }
 function prevDate(date, days) { const d = dateObj(date); d.setDate(d.getDate() - days); return dateStr(d); }
 function group(list, keyFn, idx = cols["非赠款消耗"]) {
@@ -703,7 +709,7 @@ function renderRankList(id, items, limit = 15) {
   if (!target) return;
   const data = items.sort((a, b) => b.value - a.value).slice(0, limit);
   const max = Math.max(...data.map(x => x.value), 1);
-  target.innerHTML = data.map(x => `<div class="rankRow"><span>${esc(x.label)}</span><div class="bar"><span style="width:${Math.max(2, x.value / max * 100)}%"></span></div><strong>${fmtWan(x.value)}w</strong></div>`).join("") || `<div class="empty">暂无数据</div>`;
+  target.innerHTML = data.map((x, i) => `<div class="rankRow"><span>${rankBadge(i)}${esc(x.label)}</span><div class="bar"><span style="width:${Math.max(2, x.value / max * 100)}%"></span></div><strong>${fmtWan(x.value)}w</strong></div>`).join("") || `<div class="empty">暂无数据</div>`;
 }
 function topWithOther(items, limit = 10, otherLabel = "其他") {
   const sorted = [...items].filter(x => x.value > 0).sort((a, b) => b.value - a.value);
@@ -876,7 +882,7 @@ function renderPublicity() {
     return { name, actual, target, pct: target ? actual / target * 100 : 0 };
   }).sort((a, b) => b.pct - a.pct).slice(0, 10);
   $("publicCompletionTitle").textContent = `M${monthNum}消耗完成率排行`;
-  chart("publicCompletionChart", "bar", completion.map(x => x.name), [
+  chart("publicCompletionChart", "bar", completion.map((x, i) => chartRankLabel(x.name, i)), [
     { label: "完成率", data: completion.map(x => x.pct), backgroundColor: palette.blue }
   ], {
     indexAxis: "y",
@@ -894,7 +900,7 @@ function renderPublicity() {
 
   const monthRank = group(monthRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
   $("publicMonthRankTitle").textContent = `M${monthNum}消耗排行`;
-  chart("publicMonthRankChart", "bar", monthRank.map(x => x.label), [
+  chart("publicMonthRankChart", "bar", monthRank.map((x, i) => chartRankLabel(x.label, i)), [
     { label: "M月消耗", data: monthRank.map(x => x.value), backgroundColor: palette.blue }
   ], {
     indexAxis: "y",
@@ -914,7 +920,7 @@ function renderPublicity() {
   const yRank = group(yRows, r => r[cols["商务"]]).sort((a, b) => b.value - a.value).slice(0, 10);
   const publicYesterdayTitle = $("publicYesterdayRankTitle");
   if (publicYesterdayTitle) publicYesterdayTitle.textContent = `${y.slice(5)}消耗排行`;
-  chart("publicYesterdayRankChart", "bar", yRank.map(x => x.label), [
+  chart("publicYesterdayRankChart", "bar", yRank.map((x, i) => chartRankLabel(x.label, i)), [
     { label: "昨日消耗", data: yRank.map(x => x.value), backgroundColor: palette.red }
   ], {
     indexAxis: "y",
@@ -1379,7 +1385,7 @@ function renderDailyRanks(yRows) {
 function dailyRankList(items) {
   if (!items.length) return `<p class="empty small">暂无数据</p>`;
   const max = Math.max(...items.map(x => x.value), 1);
-  return `<div class="dailyRankList">${items.map((x, i) => `<p><span>${i + 1}</span><b>${esc(x.label)}</b><i><em style="width:${x.value / max * 100}%"></em></i><strong>${fmtWan(x.value)}w</strong></p>`).join("")}</div>`;
+  return `<div class="dailyRankList">${items.map((x, i) => `<p><span class="${i < 3 ? `top${i + 1}` : ""}">${i < 3 ? `TOP${i + 1}` : i + 1}</span><b>${esc(x.label)}</b><i><em style="width:${x.value / max * 100}%"></em></i><strong>${fmtWan(x.value)}w</strong></p>`).join("")}</div>`;
 }
 function renderDailyVolatility(date) {
   const dates = [...new Set(localPushRows(rows).map(r => r[cols.date]).filter(d => d <= date))].sort().slice(-5);
@@ -1636,9 +1642,9 @@ function renderRank(id, items, emptyText = "暂无数据") {
     return;
   }
   const max = Math.max(...items.map(x => x.value), 1);
-  $(id).innerHTML = items.map(x => {
+  $(id).innerHTML = items.map((x, i) => {
     const delta = x.value - x.prev;
-    return `<div class="rankRow"><span>${esc(x.label)} <b class="grade ${x.grade}">${x.grade}</b><em>较上月同期 ${delta > 0 ? "+" : ""}${fmtWan(delta)}w｜首耗 ${esc(x.firstMonth || "-")}</em></span><div class="bar"><span style="width:${Math.max(2, x.value / max * 100)}%"></span></div><strong>${fmtWan(x.value)}w</strong></div>`;
+    return `<div class="rankRow"><span>${rankBadge(i)}${esc(x.label)} <b class="grade ${x.grade}">${x.grade}</b><em>较上月同期 ${delta > 0 ? "+" : ""}${fmtWan(delta)}w｜首耗 ${esc(x.firstMonth || "-")}</em></span><div class="bar"><span style="width:${Math.max(2, x.value / max * 100)}%"></span></div><strong>${fmtWan(x.value)}w</strong></div>`;
   }).join("");
 }
 function renderSalesCustomerMix(list) {
