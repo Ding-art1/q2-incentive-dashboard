@@ -70,10 +70,10 @@ function normalizeDateValue(value) {
   if (!value) return "";
   if (value instanceof Date && !Number.isNaN(value.getTime())) {
     const d = new Date(value.getTime());
-    // SheetJS can materialize Excel date-only cells as the previous day at 16:00
+    // SheetJS can materialize Excel date-only cells as the previous afternoon
     // in some time zones. These source files are daily snapshots, so normalize
     // afternoon timestamp-only dates forward to the intended Excel date.
-    if (d.getHours() >= 12 && d.getMinutes() === 0 && d.getSeconds() === 0) d.setDate(d.getDate() + 1);
+    if (d.getHours() >= 12) d.setDate(d.getDate() + 1);
     return dateStr(d);
   }
   if (typeof value === "number" && Number.isFinite(value)) {
@@ -90,7 +90,7 @@ function normalizeDateValue(value) {
   }
   const d = new Date(text);
   if (Number.isNaN(d.getTime())) return text.slice(0, 10);
-  if (text.includes("T") && d.getHours() >= 12 && d.getMinutes() === 0 && d.getSeconds() === 0) d.setDate(d.getDate() + 1);
+  if (text.includes("T") && d.getHours() >= 12) d.setDate(d.getDate() + 1);
   return dateStr(d);
 }
 function dataDateMin(list = allRows) { return [...new Set(list.map(r => r[cols.date]).filter(Boolean))].sort()[0] || meta.dateMin; }
