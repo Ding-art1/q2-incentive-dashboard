@@ -1903,8 +1903,8 @@ function renderCustomerChangeStats(curMonth, endDate, prevMonth) {
   const sortedLost = changes.filter(x => x.change === "流失").sort((a, b) => b.value - a.value);
   renderCustomerChangeList("myNewChangeList", sortedNew, "当前权限下暂无新增客户、渠道或主体");
   renderCustomerChangeList("myLostChangeList", sortedLost, "当前权限下暂无流失客户、渠道或主体");
-  renderCustomerChangeList("newCustomerChangeTop", sortedNew.slice(0, 8), "暂无新增数据");
-  renderCustomerChangeList("lostCustomerChangeTop", sortedLost.slice(0, 8), "暂无流失数据");
+  renderCustomerChangeList("newCustomerChangeTop", sortedNew, "暂无新增数据");
+  renderCustomerChangeList("lostCustomerChangeTop", sortedLost, "暂无流失数据");
 }
 function renderCustomerTable(list, selfMap) {
   const by = group(list, r => `${r[cols["客户类型"]]}|${r[cols["商机名称"]]}|${r[cols["项目"]]}`);
