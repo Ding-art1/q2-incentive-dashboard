@@ -102390,21 +102390,557 @@
     "channelSubject|掌银科技（广州）有限公司|1078278643 山西鑫鸿发家居科技有限公司": "抖品会"
   },
   "targets": {
+    "2026-01|business|本地推|": {
+      "month": "2026-01",
+      "level": "business",
+      "name": "本地推",
+      "biz": "",
+      "spend": 15300000,
+      "fresh": 0
+    },
+    "2026-01|business|代充值|": {
+      "month": "2026-01",
+      "level": "business",
+      "name": "代充值",
+      "biz": "",
+      "spend": 13000000,
+      "fresh": 28
+    },
+    "2026-01|business|代运营|": {
+      "month": "2026-01",
+      "level": "business",
+      "name": "代运营",
+      "biz": "",
+      "spend": 2300000,
+      "fresh": 0
+    },
+    "2026-01|team|销售一组|代充值": {
+      "month": "2026-01",
+      "level": "team",
+      "name": "销售一组",
+      "biz": "代充值",
+      "spend": 8000000,
+      "fresh": 14
+    },
+    "2026-01|team|销售二组|代充值": {
+      "month": "2026-01",
+      "level": "team",
+      "name": "销售二组",
+      "biz": "代充值",
+      "spend": 5000000,
+      "fresh": 14
+    },
+    "2026-01|person|程鹏|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "程鹏",
+      "biz": "代充值",
+      "spend": 4400000,
+      "fresh": 2
+    },
+    "2026-01|person|陈佳|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "陈佳",
+      "biz": "代充值",
+      "spend": 1800000,
+      "fresh": 4
+    },
+    "2026-01|person|樊俊俊|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "樊俊俊",
+      "biz": "代充值",
+      "spend": 700000,
+      "fresh": 4
+    },
+    "2026-01|person|黄文强|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "黄文强",
+      "biz": "代充值",
+      "spend": 1100000,
+      "fresh": 4
+    },
+    "2026-01|person|吕帅印|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "吕帅印",
+      "biz": "代充值",
+      "spend": 1300000,
+      "fresh": 2
+    },
+    "2026-01|person|尤欢|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "尤欢",
+      "biz": "代充值",
+      "spend": 1250000,
+      "fresh": 6
+    },
+    "2026-01|person|陈梦燕|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "陈梦燕",
+      "biz": "代充值",
+      "spend": 2300000,
+      "fresh": 4
+    },
+    "2026-01|person|胡金正|代充值": {
+      "month": "2026-01",
+      "level": "person",
+      "name": "胡金正",
+      "biz": "代充值",
+      "spend": 150000,
+      "fresh": 2
+    },
+    "2026-02|business|本地推|": {
+      "month": "2026-02",
+      "level": "business",
+      "name": "本地推",
+      "biz": "",
+      "spend": 10700000,
+      "fresh": 0
+    },
+    "2026-02|business|代充值|": {
+      "month": "2026-02",
+      "level": "business",
+      "name": "代充值",
+      "biz": "",
+      "spend": 10050000,
+      "fresh": 18
+    },
+    "2026-02|business|代运营|": {
+      "month": "2026-02",
+      "level": "business",
+      "name": "代运营",
+      "biz": "",
+      "spend": 650000,
+      "fresh": 0
+    },
+    "2026-02|team|销售一组|代充值": {
+      "month": "2026-02",
+      "level": "team",
+      "name": "销售一组",
+      "biz": "代充值",
+      "spend": 5500000,
+      "fresh": 10
+    },
+    "2026-02|team|销售二组|代充值": {
+      "month": "2026-02",
+      "level": "team",
+      "name": "销售二组",
+      "biz": "代充值",
+      "spend": 4550000,
+      "fresh": 8
+    },
+    "2026-02|person|程鹏|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "程鹏",
+      "biz": "代充值",
+      "spend": 3000000,
+      "fresh": 1
+    },
+    "2026-02|person|陈佳|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "陈佳",
+      "biz": "代充值",
+      "spend": 1000000,
+      "fresh": 3
+    },
+    "2026-02|person|樊俊俊|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "樊俊俊",
+      "biz": "代充值",
+      "spend": 500000,
+      "fresh": 3
+    },
+    "2026-02|person|黄文强|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "黄文强",
+      "biz": "代充值",
+      "spend": 1000000,
+      "fresh": 3
+    },
+    "2026-02|person|吕帅印|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "吕帅印",
+      "biz": "代充值",
+      "spend": 50000,
+      "fresh": 2
+    },
+    "2026-02|person|尤欢|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "尤欢",
+      "biz": "代充值",
+      "spend": 1300000,
+      "fresh": 2
+    },
+    "2026-02|person|陈梦燕|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "陈梦燕",
+      "biz": "代充值",
+      "spend": 2300000,
+      "fresh": 2
+    },
+    "2026-02|person|胡金正|代充值": {
+      "month": "2026-02",
+      "level": "person",
+      "name": "胡金正",
+      "biz": "代充值",
+      "spend": 900000,
+      "fresh": 2
+    },
+    "2026-03|business|本地推|": {
+      "month": "2026-03",
+      "level": "business",
+      "name": "本地推",
+      "biz": "",
+      "spend": 22000000,
+      "fresh": 0
+    },
+    "2026-03|business|代充值|": {
+      "month": "2026-03",
+      "level": "business",
+      "name": "代充值",
+      "biz": "",
+      "spend": 20000000,
+      "fresh": 32
+    },
+    "2026-03|business|代运营|": {
+      "month": "2026-03",
+      "level": "business",
+      "name": "代运营",
+      "biz": "",
+      "spend": 2000000,
+      "fresh": 0
+    },
+    "2026-03|team|销售一组|代充值": {
+      "month": "2026-03",
+      "level": "team",
+      "name": "销售一组",
+      "biz": "代充值",
+      "spend": 12000000,
+      "fresh": 16
+    },
+    "2026-03|team|销售二组|代充值": {
+      "month": "2026-03",
+      "level": "team",
+      "name": "销售二组",
+      "biz": "代充值",
+      "spend": 8000000,
+      "fresh": 16
+    },
+    "2026-03|person|程鹏|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "程鹏",
+      "biz": "代充值",
+      "spend": 4000000,
+      "fresh": 4
+    },
+    "2026-03|person|陈佳|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "陈佳",
+      "biz": "代充值",
+      "spend": 4500000,
+      "fresh": 4
+    },
+    "2026-03|person|樊俊俊|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "樊俊俊",
+      "biz": "代充值",
+      "spend": 1200000,
+      "fresh": 4
+    },
+    "2026-03|person|黄文强|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "黄文强",
+      "biz": "代充值",
+      "spend": 2300000,
+      "fresh": 4
+    },
+    "2026-03|person|吕帅印|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "吕帅印",
+      "biz": "代充值",
+      "spend": 1200000,
+      "fresh": 4
+    },
+    "2026-03|person|尤欢|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "尤欢",
+      "biz": "代充值",
+      "spend": 2700000,
+      "fresh": 4
+    },
+    "2026-03|person|陈梦燕|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "陈梦燕",
+      "biz": "代充值",
+      "spend": 2900000,
+      "fresh": 4
+    },
+    "2026-03|person|胡金正|代充值": {
+      "month": "2026-03",
+      "level": "person",
+      "name": "胡金正",
+      "biz": "代充值",
+      "spend": 1200000,
+      "fresh": 4
+    },
+    "2026-04|business|本地推|": {
+      "month": "2026-04",
+      "level": "business",
+      "name": "本地推",
+      "biz": "",
+      "spend": 33900000,
+      "fresh": 0
+    },
+    "2026-04|business|代充值|": {
+      "month": "2026-04",
+      "level": "business",
+      "name": "代充值",
+      "biz": "",
+      "spend": 31500000,
+      "fresh": 31
+    },
+    "2026-04|business|代运营|": {
+      "month": "2026-04",
+      "level": "business",
+      "name": "代运营",
+      "biz": "",
+      "spend": 2400000,
+      "fresh": 0
+    },
+    "2026-04|team|销售一组|代充值": {
+      "month": "2026-04",
+      "level": "team",
+      "name": "销售一组",
+      "biz": "代充值",
+      "spend": 16000000,
+      "fresh": 16
+    },
+    "2026-04|team|销售二组|代充值": {
+      "month": "2026-04",
+      "level": "team",
+      "name": "销售二组",
+      "biz": "代充值",
+      "spend": 15500000,
+      "fresh": 15
+    },
+    "2026-04|person|程鹏|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "程鹏",
+      "biz": "代充值",
+      "spend": 4000000,
+      "fresh": 4
+    },
+    "2026-04|person|陈佳|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "陈佳",
+      "biz": "代充值",
+      "spend": 5800000,
+      "fresh": 4
+    },
+    "2026-04|person|樊俊俊|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "樊俊俊",
+      "biz": "代充值",
+      "spend": 1200000,
+      "fresh": 4
+    },
+    "2026-04|person|黄文强|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "黄文强",
+      "biz": "代充值",
+      "spend": 5000000,
+      "fresh": 4
+    },
+    "2026-04|person|吕帅印|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "吕帅印",
+      "biz": "代充值",
+      "spend": 0,
+      "fresh": 0
+    },
+    "2026-04|person|尤欢|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "尤欢",
+      "biz": "代充值",
+      "spend": 9500000,
+      "fresh": 5
+    },
+    "2026-04|person|陈梦燕|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "陈梦燕",
+      "biz": "代充值",
+      "spend": 4500000,
+      "fresh": 5
+    },
+    "2026-04|person|胡金正|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "胡金正",
+      "biz": "代充值",
+      "spend": 1500000,
+      "fresh": 5
+    },
+    "2026-04|person|于泽|代充值": {
+      "month": "2026-04",
+      "level": "person",
+      "name": "于泽",
+      "biz": "代充值",
+      "spend": 500000,
+      "fresh": 5
+    },
+    "2026-05|business|本地推|": {
+      "month": "2026-05",
+      "level": "business",
+      "name": "本地推",
+      "biz": "",
+      "spend": 37100000,
+      "fresh": 0
+    },
+    "2026-05|business|代充值|": {
+      "month": "2026-05",
+      "level": "business",
+      "name": "代充值",
+      "biz": "",
+      "spend": 35100000,
+      "fresh": 16
+    },
+    "2026-05|business|代运营|": {
+      "month": "2026-05",
+      "level": "business",
+      "name": "代运营",
+      "biz": "",
+      "spend": 2000000,
+      "fresh": 0
+    },
+    "2026-05|team|销售一组|代充值": {
+      "month": "2026-05",
+      "level": "team",
+      "name": "销售一组",
+      "biz": "代充值",
+      "spend": 16000000,
+      "fresh": 8
+    },
+    "2026-05|team|销售二组|代充值": {
+      "month": "2026-05",
+      "level": "team",
+      "name": "销售二组",
+      "biz": "代充值",
+      "spend": 19100000,
+      "fresh": 8
+    },
+    "2026-05|person|程鹏|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "程鹏",
+      "biz": "代充值",
+      "spend": 4000000,
+      "fresh": 2
+    },
+    "2026-05|person|陈佳|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "陈佳",
+      "biz": "代充值",
+      "spend": 4000000,
+      "fresh": 2
+    },
+    "2026-05|person|樊俊俊|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "樊俊俊",
+      "biz": "代充值",
+      "spend": 2000000,
+      "fresh": 2
+    },
+    "2026-05|person|黄文强|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "黄文强",
+      "biz": "代充值",
+      "spend": 6000000,
+      "fresh": 2
+    },
+    "2026-05|person|吕帅印|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "吕帅印",
+      "biz": "代充值",
+      "spend": 1000000,
+      "fresh": 2
+    },
+    "2026-05|person|尤欢|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "尤欢",
+      "biz": "代充值",
+      "spend": 9500000,
+      "fresh": 2
+    },
+    "2026-05|person|陈梦燕|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "陈梦燕",
+      "biz": "代充值",
+      "spend": 6000000,
+      "fresh": 2
+    },
+    "2026-05|person|胡金正|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "胡金正",
+      "biz": "代充值",
+      "spend": 2600000,
+      "fresh": 2
+    },
+    "2026-05|person|于泽|代充值": {
+      "month": "2026-05",
+      "level": "person",
+      "name": "于泽",
+      "biz": "代充值",
+      "spend": 1900000,
+      "fresh": 2
+    },
     "2026-06|business|本地推|": {
       "month": "2026-06",
       "level": "business",
       "name": "本地推",
       "biz": "",
-      "spend": 45400000,
+      "spend": 44400000,
       "fresh": 0
     },
     "2026-06|business|代充值|": {
       "month": "2026-06",
       "level": "business",
       "name": "代充值",
-      "spend": 43000000,
-      "fresh": 0,
-      "biz": ""
+      "biz": "",
+      "spend": 42000000,
+      "fresh": 40
     },
     "2026-06|business|代运营|": {
       "month": "2026-06",
@@ -102414,21 +102950,21 @@
       "spend": 2400000,
       "fresh": 0
     },
-    "2026-06|team|销售一组|本地推": {
+    "2026-06|team|销售一组|代充值": {
       "month": "2026-06",
       "level": "team",
       "name": "销售一组",
-      "biz": "本地推",
+      "biz": "代充值",
       "spend": 20000000,
-      "fresh": 0
+      "fresh": 20
     },
     "2026-06|team|销售二组|本地推": {
       "month": "2026-06",
       "level": "team",
       "name": "销售二组",
       "biz": "本地推",
-      "spend": 25000000,
-      "fresh": 0
+      "spend": 22000000,
+      "fresh": 20
     },
     "2026-06|person|程鹏|本地推": {
       "month": "2026-06",
@@ -102436,7 +102972,7 @@
       "name": "程鹏",
       "biz": "本地推",
       "spend": 3000000,
-      "fresh": 0
+      "fresh": 6
     },
     "2026-06|person|陈佳|本地推": {
       "month": "2026-06",
@@ -102444,7 +102980,7 @@
       "name": "陈佳",
       "biz": "本地推",
       "spend": 5000000,
-      "fresh": 0
+      "fresh": 6
     },
     "2026-06|person|樊俊俊|本地推": {
       "month": "2026-06",
@@ -102452,7 +102988,7 @@
       "name": "樊俊俊",
       "biz": "本地推",
       "spend": 4000000,
-      "fresh": 0
+      "fresh": 6
     },
     "2026-06|person|黄文强|本地推": {
       "month": "2026-06",
@@ -102460,47 +102996,48 @@
       "name": "黄文强",
       "biz": "本地推",
       "spend": 8000000,
-      "fresh": 0
+      "fresh": 2
     },
-    "2026-06|person|吕帅印|本地推": {
+    "2026-06|person|吕帅印|代充值": {
       "month": "2026-06",
       "level": "person",
       "name": "吕帅印",
-      "biz": "本地推",
+      "biz": "代充值",
       "spend": 2000000,
-      "fresh": 0
+      "fresh": 5
     },
-    "2026-06|person|尤欢|本地推": {
+    "2026-06|person|尤欢|代充值": {
       "month": "2026-06",
       "level": "person",
       "name": "尤欢",
-      "biz": "本地推",
+      "biz": "代充值",
       "spend": 7000000,
-      "fresh": 0
+      "fresh": 5
     },
-    "2026-06|person|陈梦燕|本地推": {
+    "2026-06|person|陈梦燕|代充值": {
       "month": "2026-06",
       "level": "person",
       "name": "陈梦燕",
-      "biz": "本地推",
+      "biz": "代充值",
       "spend": 9500000,
-      "fresh": 0
+      "fresh": 5
     },
-    "2026-06|person|胡金正|本地推": {
+    "2026-06|person|胡金正|代充值": {
       "month": "2026-06",
       "level": "person",
       "name": "胡金正",
-      "biz": "本地推",
+      "biz": "代充值",
       "spend": 3500000,
-      "fresh": 0
+      "fresh": 5
     },
-    "2026-06|person|于泽|本地推": {
+    "2026-06|person|于泽|代充值": {
       "month": "2026-06",
       "level": "person",
       "name": "于泽",
-      "biz": "本地推",
+      "biz": "代充值",
       "spend": 3000000,
-      "fresh": 0
+      "fresh": 5
     }
-  }
+  },
+  "generatedAt": "2026-06-29T05:21:21.629Z"
 }
