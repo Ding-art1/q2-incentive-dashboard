@@ -956,11 +956,42 @@ function renderAnnualOverview() {
   ].join("");
 
   const bizNames = ["本地推", "代充值", "代运营"];
-  chart("annualMonthSpendChart", "bar", labels, bizNames.map((name, i) => ({
+  const monthlyTotals = months.map(month => sumByMonth(source, month));
+  const monthlyMom = monthlyTotals.map((value, index) => {
+    if (index === 0 || !monthlyTotals[index - 1]) return null;
+    return (value - monthlyTotals[index - 1]) / monthlyTotals[index - 1] * 100;
+  });
+  chart("annualMonthSpendChart", "bar", labels, [
+    ...bizNames.map((name, i) => ({
     label: name,
     data: months.map(month => sumByMonth(source, month, r => bizRows([r], name).length > 0)),
-    backgroundColor: [palette.blue, palette.green, palette.amber][i]
-  })), { scales: { x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } }, y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } } } });
+    backgroundColor: [palette.blue, palette.green, palette.amber][i],
+    yAxisID: "y"
+  })),
+    {
+      type: "line",
+      label: "环比增长率",
+      data: monthlyMom,
+      borderColor: palette.red,
+      backgroundColor: "rgba(239,45,53,.12)",
+      borderWidth: 3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: .25,
+      yAxisID: "y1",
+      spanGaps: false
+    }
+  ], {
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
+      y1: { position: "right", grid: { drawOnChartArea: false }, ticks: { color: palette.red, callback: v => `${v}%` } }
+    },
+    plugins: {
+      legend: { display: true },
+      tooltip: { callbacks: { label(ctx) { return ctx.dataset.yAxisID === "y1" ? `${ctx.dataset.label}: ${ctx.parsed.y == null ? "-" : pctFmt.format(ctx.parsed.y)}%` : `${ctx.dataset.label}: ${fmtWan(ctx.parsed.y)}w`; } } }
+    }
+  });
   shareChart("annualBizShareChart", months, bizNames.map(name => ({
     label: name,
     values: months.map(month => sumByMonth(source, month, r => bizRows([r], name).length > 0))
