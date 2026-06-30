@@ -1002,6 +1002,34 @@ function renderAnnualOverview() {
     label: team,
     values: months.map(month => sumByMonth(source, month, r => salesTeam(r) === team))
   })), [palette.blue, palette.green, "#94a3b8"]);
+  const teamColors = [palette.blue, palette.green, "#94a3b8"];
+  chart("annualTeamMomChart", "line", labels, teamNames.map((team, i) => {
+    const values = months.map(month => sumByMonth(source, month, r => salesTeam(r) === team));
+    return {
+      label: team,
+      data: values.map((value, index) => index === 0 || !values[index - 1] ? null : (value - values[index - 1]) / values[index - 1] * 100),
+      rawValues: values,
+      borderColor: teamColors[i],
+      backgroundColor: teamColors[i],
+      borderWidth: 3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: .25,
+      spanGaps: false
+    };
+  }), {
+    scales: {
+      y: { grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
+      x: { grid: { color: palette.grid }, ticks: { color: palette.tick } }
+    },
+    plugins: {
+      legend: { display: true },
+      tooltip: { callbacks: { label(ctx) {
+        const current = ctx.dataset.rawValues?.[ctx.dataIndex] || 0;
+        return `${ctx.dataset.label}: ${ctx.parsed.y == null ? "-" : pctFmt.format(ctx.parsed.y)}%｜本月 ${fmtWan(current)}w`;
+      } } }
+    }
+  });
   const salesNames = [...new Set(source.map(r => r[cols["商务"]]).filter(Boolean))]
     .sort((a, b) => sum(source.filter(r => r[cols["商务"]] === b)) - sum(source.filter(r => r[cols["商务"]] === a)));
   renderAnnualSalesHeatmap(source, months, salesNames);
