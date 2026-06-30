@@ -945,6 +945,32 @@ function renderAnnualSalesHeatmap(source, months, salesNames) {
   const leaderText = months.map((month, index) => leaders[index] ? `${monthLabel(month)} ${leaders[index].name} ${pctFmt.format(leaders[index].shares[index])}%` : `${monthLabel(month)} -`).join("｜");
   node.innerHTML = `<div class="annualLeaderLine">月度占比最高：${esc(leaderText)}</div><div class="annualHeatmap">${header}${body}</div>`;
 }
+function renderAnnualIndustryTopList(source, months) {
+  const node = $("annualIndustryTopList");
+  if (!node) return;
+  node.innerHTML = months.map(month => {
+    const monthRows = source.filter(r => r[cols.monthKey] === month);
+    const total = sum(monthRows);
+    const items = group(monthRows, r => r[cols["一级行业"]] || "未填写")
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 10);
+    const max = Math.max(1, ...items.map(item => item.value));
+    const rowsHtml = items.map((item, index) => {
+      const share = total ? item.value / total * 100 : 0;
+      return `<div class="annualIndustryRow">
+        <span class="rankBadge">${index + 1}</span>
+        <strong>${esc(item.label)}</strong>
+        <div class="miniBar"><i style="width:${Math.max(2, item.value / max * 100)}%"></i></div>
+        <b>${fmtWan(item.value)}w</b>
+        <em>${pctFmt.format(share)}%</em>
+      </div>`;
+    }).join("");
+    return `<article class="annualIndustryMonth">
+      <h5>${esc(monthLabel(month))}<span>总消耗 ${fmtWan(total)}w</span></h5>
+      ${rowsHtml || `<p>暂无数据</p>`}
+    </article>`;
+  }).join("");
+}
 function renderAnnualOverview() {
   if (!isAdmin() || !$("annualOverview")) return;
   const source = annualSourceRows();
@@ -1120,17 +1146,7 @@ function renderAnnualOverview() {
     }
   });
 
-  const topIndustries = group(source, r => r[cols["一级行业"]] || "未填写")
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8)
-    .map(x => x.label);
-  chart("annualIndustryTrendChart", "line", labels, topIndustries.map((industry, i) => ({
-    label: industry,
-    data: months.map(month => sumByMonth(source, month, r => (r[cols["一级行业"]] || "未填写") === industry)),
-    borderColor: [palette.blue, palette.green, palette.amber, palette.red, palette.violet, "#0ea5e9", "#14b8a6", "#64748b"][i],
-    backgroundColor: "rgba(47,107,255,.08)",
-    tension: .25
-  })), { plugins: { legend: { display: true } } });
+  renderAnnualIndustryTopList(source, months);
 }
 
 function applyFilters() {
