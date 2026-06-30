@@ -160,6 +160,12 @@ p { margin: 6px 0 0; color: var(--muted); }
   padding: 14px;
   background: rgba(255,255,255,.96);
 }
+body.annual-overview-active .topbar {
+  padding-bottom: 28px;
+}
+body.annual-overview-active .filters {
+  display: none;
+}
 label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
 input, select, button {
   min-height: 36px;
