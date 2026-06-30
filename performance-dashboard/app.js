@@ -840,6 +840,14 @@ function annualSourceRows() {
   const year = latest.slice(0, 4);
   return localPushRows(allRows).filter(r => r[cols.monthKey]?.startsWith(`${year}-`) && r[cols.date] <= latest);
 }
+function annualSelfShareBaseRows() {
+  const latest = dataDateMax(allRows);
+  const year = latest.slice(0, 4);
+  return allRows.filter(r => {
+    const port = r[cols["媒体端口"]];
+    return r[cols.monthKey]?.startsWith(`${year}-`) && r[cols.date] <= latest && (port === "巨量-本地推" || port === "巨量-AD");
+  });
+}
 function annualMonths(list) {
   return dataMonths(list).sort();
 }
@@ -1091,22 +1099,24 @@ function renderAnnualOverview() {
   });
 
   const selfValues = months.map(selfSpendByMonth);
-  const localValues = months.map(month => sumByMonth(source, month));
+  const selfBaseRows = annualSelfShareBaseRows();
+  const selfBaseValues = months.map(month => sumByMonth(selfBaseRows, month));
   chart("annualSelfShareChart", "line", labels, [{
     label: "自运营占比",
-    data: selfValues.map((value, index) => localValues[index] ? value / localValues[index] * 100 : 0),
+    data: selfValues.map((value, index) => selfBaseValues[index] ? Math.min(100, value / selfBaseValues[index] * 100) : 0),
     rawValues: selfValues,
+    baseValues: selfBaseValues,
     borderColor: palette.violet,
     backgroundColor: "rgba(91,110,225,.12)",
     tension: .25
   }], {
     scales: {
-      y: { beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
+      y: { beginAtZero: true, max: 100, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
       x: { grid: { color: palette.grid }, ticks: { color: palette.tick } }
     },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label(ctx) { return `自运营占比 ${pctFmt.format(ctx.parsed.y)}%｜自运营 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w`; } } }
+      tooltip: { callbacks: { label(ctx) { return `自运营占比 ${pctFmt.format(ctx.parsed.y)}%｜自运营 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w｜分母 ${fmtWan(ctx.dataset.baseValues?.[ctx.dataIndex] || 0)}w`; } } }
     }
   });
 
