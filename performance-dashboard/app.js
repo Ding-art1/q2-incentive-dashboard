@@ -893,6 +893,16 @@ function gradeMonthlyDistribution(list, months) {
     return counts;
   });
 }
+function gradeMonthlySpendDistribution(list, months) {
+  return months.map(month => {
+    const byProject = group(list.filter(r => r[cols.monthKey] === month), r => r[cols["项目"]] || r[cols["商机名称"]]);
+    const spends = Object.fromEntries(gradeOrder.map(level => [level, 0]));
+    byProject.forEach(item => {
+      if (item.value > 0) spends[grade(item.value)] += item.value;
+    });
+    return spends;
+  });
+}
 function selfSpendByMonth(month) {
   const label = monthM(month);
   return payload.selfOperating
@@ -977,6 +987,21 @@ function renderAnnualOverview() {
       y: { stacked: true, beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0 } }
     },
     plugins: { legend: { display: true } }
+  });
+  const gradeSpendDist = gradeMonthlySpendDistribution(source, months);
+  chart("annualGradeSpendChart", "bar", labels, gradeOrder.map(level => ({
+    label: level,
+    data: gradeSpendDist.map(item => item[level] || 0),
+    backgroundColor: gradeColors[level]
+  })), {
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } }
+    },
+    plugins: {
+      legend: { display: true },
+      tooltip: { callbacks: { label(ctx) { return `${ctx.dataset.label}: ${fmtWan(ctx.parsed.y)}w`; } } }
+    }
   });
 
   const typeSeries = ["直签", "渠道"].map((type, i) => ({
