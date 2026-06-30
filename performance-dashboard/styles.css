@@ -286,6 +286,91 @@ button { cursor: pointer; font-weight: 700; }
 #annualOverview .metric strong {
   font-size: 28px;
 }
+.annualHeatmapCard {
+  overflow: auto;
+}
+.annualLeaderLine {
+  margin: 0 0 10px;
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: #eef5ff;
+  color: #3157b7;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.annualHeatmap {
+  min-width: 860px;
+  display: grid;
+  gap: 6px;
+}
+.annualHeatmapRow {
+  display: grid;
+  gap: 6px;
+  align-items: stretch;
+}
+.annualHeatmapHead span,
+.annualHeatmapRow > strong,
+.annualHeatTotal,
+.annualHeatCell {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+.annualHeatmapHead span {
+  min-height: 34px;
+  background: #f4f7fb;
+  color: #66758f;
+  font-size: 12px;
+  font-weight: 900;
+}
+.annualHeatmapRow > strong {
+  justify-content: flex-start;
+  padding: 0 10px;
+  background: #f8fbff;
+  color: #17213a;
+  font-size: 13px;
+}
+.annualHeatCell {
+  position: relative;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid rgba(47,107,255,.14);
+  background: rgba(47,107,255, calc(.08 + var(--heat) * .34));
+  color: #15306d;
+  font-size: 12px;
+  font-weight: 900;
+}
+.annualHeatCell em {
+  color: #516179;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+.annualHeatCell.top {
+  border-color: rgba(245,158,11,.45);
+  background: linear-gradient(135deg, rgba(245,158,11,.26), rgba(47,107,255, calc(.08 + var(--heat) * .24)));
+  color: #8a4b00;
+}
+.annualHeatCell i {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+}
+.annualHeatTotal {
+  background: #eef6ff;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 900;
+}
 .dashBlock {
   position: relative;
   overflow: hidden;

@@ -899,6 +899,34 @@ function selfSpendByMonth(month) {
     .filter(r => r[selfCols["月份"]] === label)
     .reduce((acc, r) => acc + Number(r[selfCols["本月总消耗"]] || 0), 0);
 }
+function renderAnnualSalesHeatmap(source, months, salesNames) {
+  const node = $("annualSalesShareHeatmap");
+  if (!node) return;
+  const totals = months.map(month => sumByMonth(source, month));
+  const rows = salesNames.map(name => {
+    const values = months.map(month => sumByMonth(source, month, r => r[cols["商务"]] === name));
+    const shares = values.map((value, index) => totals[index] ? value / totals[index] * 100 : 0);
+    return { name, values, shares, total: values.reduce((acc, value) => acc + value, 0) };
+  }).filter(row => row.total > 0);
+  const leaders = months.map((_, monthIndex) => rows.reduce((best, row) => row.shares[monthIndex] > (best?.shares[monthIndex] || 0) ? row : best, null));
+  const maxShare = Math.max(1, ...rows.flatMap(row => row.shares));
+  const columns = `132px repeat(${months.length}, minmax(92px, 1fr)) 108px`;
+  const header = `<div class="annualHeatmapRow annualHeatmapHead" style="grid-template-columns:${columns}"><span>商务</span>${months.map(month => `<span>${esc(monthLabel(month))}</span>`).join("")}<span>年度合计</span></div>`;
+  const body = rows.map(row => {
+    const cells = row.shares.map((share, index) => {
+      const isTop = leaders[index]?.name === row.name && share > 0;
+      const alpha = Math.max(.08, Math.min(.9, share / maxShare));
+      return `<span class="annualHeatCell${isTop ? " top" : ""}" style="--heat:${alpha}">
+        <b>${pctFmt.format(share)}%</b>
+        <em>${fmtWan(row.values[index])}w</em>
+        ${isTop ? "<i>TOP</i>" : ""}
+      </span>`;
+    }).join("");
+    return `<div class="annualHeatmapRow" style="grid-template-columns:${columns}"><strong>${esc(row.name)}</strong>${cells}<span class="annualHeatTotal">${fmtWan(row.total)}w</span></div>`;
+  }).join("");
+  const leaderText = months.map((month, index) => leaders[index] ? `${monthLabel(month)} ${leaders[index].name} ${pctFmt.format(leaders[index].shares[index])}%` : `${monthLabel(month)} -`).join("｜");
+  node.innerHTML = `<div class="annualLeaderLine">月度占比最高：${esc(leaderText)}</div><div class="annualHeatmap">${header}${body}</div>`;
+}
 function renderAnnualOverview() {
   if (!isAdmin() || !$("annualOverview")) return;
   const source = annualSourceRows();
@@ -935,10 +963,7 @@ function renderAnnualOverview() {
   })), [palette.blue, palette.green, "#94a3b8"]);
   const salesNames = [...new Set(source.map(r => r[cols["商务"]]).filter(Boolean))]
     .sort((a, b) => sum(source.filter(r => r[cols["商务"]] === b)) - sum(source.filter(r => r[cols["商务"]] === a)));
-  shareChart("annualSalesShareChart", months, salesNames.map(name => ({
-    label: name,
-    values: months.map(month => sumByMonth(source, month, r => r[cols["商务"]] === name))
-  })), [palette.blue, palette.green, palette.amber, palette.red, palette.violet, "#0ea5e9", "#14b8a6", "#a855f7", "#64748b", "#f97316", "#84cc16"]);
+  renderAnnualSalesHeatmap(source, months, salesNames);
 
   const gradeDist = gradeMonthlyDistribution(source, months);
   chart("annualGradeChart", "bar", labels, gradeOrder.map(level => ({
