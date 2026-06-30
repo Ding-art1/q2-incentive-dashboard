@@ -399,9 +399,9 @@ button { cursor: pointer; font-weight: 700; }
   left: 0;
 }
 .annualIndustryCard #annualIndustryTopList {
-  min-width: 760px;
+  min-width: 980px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 12px;
 }
 .annualIndustryMonth {
@@ -425,7 +425,7 @@ button { cursor: pointer; font-weight: 700; }
 }
 .annualIndustryRow {
   display: grid;
-  grid-template-columns: 26px minmax(74px, 1fr) minmax(90px, 1.2fr) 62px 48px;
+  grid-template-columns: 26px minmax(96px, 1fr) minmax(110px, 1.2fr) 72px 82px;
   gap: 8px;
   align-items: center;
   padding: 6px 0;
@@ -463,6 +463,33 @@ button { cursor: pointer; font-weight: 700; }
 }
 .annualIndustryRow em {
   color: var(--blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  white-space: nowrap;
+}
+.shareTrend {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 900;
+}
+.shareTrend.up {
+  color: #16a34a;
+  background: #eaf8ef;
+}
+.shareTrend.down {
+  color: #ef2d35;
+  background: #fff0f0;
+}
+.shareTrend.flat {
+  color: #718096;
+  background: #f1f5f9;
 }
 .dashBlock {
   position: relative;

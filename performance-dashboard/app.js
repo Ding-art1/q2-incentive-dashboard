@@ -948,7 +948,16 @@ function renderAnnualSalesHeatmap(source, months, salesNames) {
 function renderAnnualIndustryTopList(source, months) {
   const node = $("annualIndustryTopList");
   if (!node) return;
-  node.innerHTML = months.map(month => {
+  const monthlyIndustryShares = Object.fromEntries(months.map(month => {
+    const monthRows = source.filter(r => r[cols.monthKey] === month);
+    const total = sum(monthRows);
+    const shares = {};
+    group(monthRows, r => r[cols["一级行业"]] || "未填写").forEach(item => {
+      shares[item.label] = total ? item.value / total * 100 : 0;
+    });
+    return [month, shares];
+  }));
+  node.innerHTML = months.map((month, monthIndex) => {
     const monthRows = source.filter(r => r[cols.monthKey] === month);
     const total = sum(monthRows);
     const items = group(monthRows, r => r[cols["一级行业"]] || "未填写")
@@ -957,12 +966,18 @@ function renderAnnualIndustryTopList(source, months) {
     const max = Math.max(1, ...items.map(item => item.value));
     const rowsHtml = items.map((item, index) => {
       const share = total ? item.value / total * 100 : 0;
+      const prevMonth = months[monthIndex - 1];
+      const prevShare = prevMonth ? (monthlyIndustryShares[prevMonth]?.[item.label] || 0) : null;
+      const delta = prevShare == null ? 0 : share - prevShare;
+      const trendCls = prevShare == null || Math.abs(delta) < .05 ? "flat" : delta > 0 ? "up" : "down";
+      const trendIcon = trendCls === "up" ? "↑" : trendCls === "down" ? "↓" : "→";
+      const trendText = prevShare == null ? "首月" : `${delta > 0 ? "+" : ""}${pctFmt.format(delta)}pct`;
       return `<div class="annualIndustryRow">
         <span class="rankBadge">${index + 1}</span>
         <strong>${esc(item.label)}</strong>
         <div class="miniBar"><i style="width:${Math.max(2, item.value / max * 100)}%"></i></div>
         <b>${fmtWan(item.value)}w</b>
-        <em>${pctFmt.format(share)}%</em>
+        <em>${pctFmt.format(share)}%<span class="shareTrend ${trendCls}" title="较上月占比 ${esc(trendText)}">${trendIcon}</span></em>
       </div>`;
     }).join("");
     return `<article class="annualIndustryMonth">
