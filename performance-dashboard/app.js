@@ -989,19 +989,47 @@ function renderAnnualOverview() {
     metric("年度项目数", `${fmtMoney(uniqueCount(source, r => r[cols["项目"]] || r[cols["商机名称"]]))}`, `主体 ${fmtMoney(uniqueCount(source, r => r[cols["广告主主体"]]))} 个`, "biz-new")
   ].join("");
 
-  const bizNames = ["本地推", "代充值", "代运营"];
   const monthlyTotals = months.map(month => sumByMonth(source, month));
+  const monthlyRecharge = months.map(month => sumByMonth(source, month, r => bizRows([r], "代充值").length > 0));
+  const monthlyOperate = months.map(month => sumByMonth(source, month, r => bizRows([r], "代运营").length > 0));
+  const monthlyOtherLocal = monthlyTotals.map((value, index) => Math.max(0, value - monthlyRecharge[index] - monthlyOperate[index]));
   const monthlyMom = monthlyTotals.map((value, index) => {
     if (index === 0 || !monthlyTotals[index - 1]) return null;
     return (value - monthlyTotals[index - 1]) / monthlyTotals[index - 1] * 100;
   });
   chart("annualMonthSpendChart", "bar", labels, [
-    ...bizNames.map((name, i) => ({
-    label: name,
-    data: months.map(month => sumByMonth(source, month, r => bizRows([r], name).length > 0)),
-    backgroundColor: [palette.blue, palette.green, palette.amber][i],
-    yAxisID: "y"
-  })),
+    {
+      label: "本地推总消耗",
+      data: monthlyTotals,
+      backgroundColor: "rgba(47,105,246,.78)",
+      borderColor: palette.blue,
+      borderWidth: 1,
+      yAxisID: "y"
+    },
+    {
+      type: "line",
+      label: "代充值（本地推内）",
+      data: monthlyRecharge,
+      borderColor: palette.green,
+      backgroundColor: "rgba(22,163,74,.12)",
+      borderWidth: 3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: .25,
+      yAxisID: "y"
+    },
+    {
+      type: "line",
+      label: "代运营（本地推内）",
+      data: monthlyOperate,
+      borderColor: palette.amber,
+      backgroundColor: "rgba(245,158,11,.12)",
+      borderWidth: 3,
+      pointRadius: 4,
+      pointHoverRadius: 6,
+      tension: .25,
+      yAxisID: "y"
+    },
     {
       type: "line",
       label: "环比增长率",
@@ -1017,8 +1045,8 @@ function renderAnnualOverview() {
     }
   ], {
     scales: {
-      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
-      y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
+      x: { stacked: false, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: false, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
       y1: { position: "right", grid: { drawOnChartArea: false }, ticks: { color: palette.red, callback: v => `${v}%` } }
     },
     plugins: {
@@ -1026,10 +1054,11 @@ function renderAnnualOverview() {
       tooltip: { callbacks: { label(ctx) { return ctx.dataset.yAxisID === "y1" ? `${ctx.dataset.label}: ${ctx.parsed.y == null ? "-" : pctFmt.format(ctx.parsed.y)}%` : `${ctx.dataset.label}: ${fmtWan(ctx.parsed.y)}w`; } } }
     }
   });
-  shareChart("annualBizShareChart", months, bizNames.map(name => ({
-    label: name,
-    values: months.map(month => sumByMonth(source, month, r => bizRows([r], name).length > 0))
-  })), [palette.blue, palette.green, palette.amber]);
+  shareChart("annualBizShareChart", months, [
+    { label: "其他本地推", values: monthlyOtherLocal },
+    { label: "代充值", values: monthlyRecharge },
+    { label: "代运营", values: monthlyOperate }
+  ], [palette.blue, palette.green, palette.amber]);
 
   const teamNames = ["销售一组", "销售二组", "未分组"];
   shareChart("annualTeamShareChart", months, teamNames.map(team => ({
