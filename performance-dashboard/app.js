@@ -835,6 +835,185 @@ function renderIndustryDashboard(list) {
   });
 }
 
+function annualSourceRows() {
+  const latest = dataDateMax(allRows);
+  const year = latest.slice(0, 4);
+  return localPushRows(allRows).filter(r => r[cols.monthKey]?.startsWith(`${year}-`) && r[cols.date] <= latest);
+}
+function annualMonths(list) {
+  return dataMonths(list).sort();
+}
+function monthLabel(month) {
+  return month.replace("-", ".");
+}
+function sumByMonth(list, month, filterFn = () => true) {
+  return sum(list.filter(r => r[cols.monthKey] === month && filterFn(r)));
+}
+function countProjectsByMonth(list, month, filterFn = () => true) {
+  return uniqueCount(list.filter(r => r[cols.monthKey] === month && filterFn(r)), r => r[cols["项目"]] || r[cols["商机名称"]]);
+}
+function shareDatasets(labels, series, colors) {
+  const totals = labels.map((_, index) => series.reduce((acc, item) => acc + Number(item.values[index] || 0), 0));
+  return series.map((item, i) => ({
+    label: item.label,
+    data: item.values.map((value, index) => totals[index] ? value / totals[index] * 100 : 0),
+    rawValues: item.values,
+    backgroundColor: colors[i % colors.length],
+    borderColor: colors[i % colors.length],
+    borderWidth: 1
+  }));
+}
+function shareChart(id, labels, series, colors) {
+  chart(id, "bar", labels.map(monthLabel), shareDatasets(labels, series, colors), {
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, min: 0, max: 100, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } }
+    },
+    plugins: {
+      legend: { display: true },
+      tooltip: {
+        callbacks: {
+          label(ctx) {
+            const pct = ctx.parsed.y || 0;
+            const raw = ctx.dataset.rawValues?.[ctx.dataIndex] || 0;
+            return `${ctx.dataset.label}: ${pctFmt.format(pct)}%｜${fmtWan(raw)}w`;
+          }
+        }
+      }
+    }
+  });
+}
+function gradeMonthlyDistribution(list, months) {
+  return months.map(month => {
+    const byProject = group(list.filter(r => r[cols.monthKey] === month), r => r[cols["项目"]] || r[cols["商机名称"]]);
+    const counts = Object.fromEntries(gradeOrder.map(level => [level, 0]));
+    byProject.forEach(item => {
+      if (item.value > 0) counts[grade(item.value)] += 1;
+    });
+    return counts;
+  });
+}
+function selfSpendByMonth(month) {
+  const label = monthM(month);
+  return payload.selfOperating
+    .filter(r => r[selfCols["月份"]] === label)
+    .reduce((acc, r) => acc + Number(r[selfCols["本月总消耗"]] || 0), 0);
+}
+function renderAnnualOverview() {
+  if (!isAdmin() || !$("annualOverview")) return;
+  const source = annualSourceRows();
+  const months = annualMonths(source);
+  const labels = months.map(monthLabel);
+  const total = sum(source);
+  const latest = dataDateMax(source);
+  const currentMonth = monthOf(latest);
+  const currentRows = source.filter(r => r[cols.monthKey] === currentMonth);
+  const direct = source.filter(isDirectRow);
+  const channel = source.filter(isChannelRow);
+  $("annualMetrics").innerHTML = [
+    metric("年度累计非赠款消耗", `${fmtWan(total)}w`, `${months[0] || "-"} 至 ${currentMonth || "-"}`, "biz-local"),
+    metric("本月非赠款消耗", `${fmtWan(sum(currentRows))}w`, `截至 ${latest}`, "biz-recharge"),
+    metric("直签消耗占比", `${fmtPct(sum(direct), total)}`, `直签 ${fmtWan(sum(direct))}w｜渠道 ${fmtWan(sum(channel))}w`, "biz-operate"),
+    metric("年度项目数", `${fmtMoney(uniqueCount(source, r => r[cols["项目"]] || r[cols["商机名称"]]))}`, `主体 ${fmtMoney(uniqueCount(source, r => r[cols["广告主主体"]]))} 个`, "biz-new")
+  ].join("");
+
+  const bizNames = ["本地推", "代充值", "代运营"];
+  chart("annualMonthSpendChart", "bar", labels, bizNames.map((name, i) => ({
+    label: name,
+    data: months.map(month => sumByMonth(source, month, r => bizRows([r], name).length > 0)),
+    backgroundColor: [palette.blue, palette.green, palette.amber][i]
+  })), { scales: { x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } }, y: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } } } });
+  shareChart("annualBizShareChart", months, bizNames.map(name => ({
+    label: name,
+    values: months.map(month => sumByMonth(source, month, r => bizRows([r], name).length > 0))
+  })), [palette.blue, palette.green, palette.amber]);
+
+  const teamNames = ["销售一组", "销售二组", "未分组"];
+  shareChart("annualTeamShareChart", months, teamNames.map(team => ({
+    label: team,
+    values: months.map(month => sumByMonth(source, month, r => salesTeam(r) === team))
+  })), [palette.blue, palette.green, "#94a3b8"]);
+  const salesNames = [...new Set(source.map(r => r[cols["商务"]]).filter(Boolean))]
+    .sort((a, b) => sum(source.filter(r => r[cols["商务"]] === b)) - sum(source.filter(r => r[cols["商务"]] === a)));
+  shareChart("annualSalesShareChart", months, salesNames.map(name => ({
+    label: name,
+    values: months.map(month => sumByMonth(source, month, r => r[cols["商务"]] === name))
+  })), [palette.blue, palette.green, palette.amber, palette.red, palette.violet, "#0ea5e9", "#14b8a6", "#a855f7", "#64748b", "#f97316", "#84cc16"]);
+
+  const gradeDist = gradeMonthlyDistribution(source, months);
+  chart("annualGradeChart", "bar", labels, gradeOrder.map(level => ({
+    label: level,
+    data: gradeDist.map(item => item[level] || 0),
+    backgroundColor: gradeColors[level]
+  })), {
+    countAxis: true,
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, precision: 0 } }
+    },
+    plugins: { legend: { display: true } }
+  });
+
+  const typeSeries = ["直签", "渠道"].map((type, i) => ({
+    label: `${type}消耗`,
+    data: months.map(month => sumByMonth(source, month, r => type === "直签" ? isDirectRow(r) : isChannelRow(r))),
+    backgroundColor: [palette.blue, palette.green][i],
+    yAxisID: "y"
+  }));
+  const countSeries = ["直签", "渠道"].map((type, i) => ({
+    type: "line",
+    label: `${type}项目数`,
+    data: months.map(month => countProjectsByMonth(source, month, r => type === "直签" ? isDirectRow(r) : isChannelRow(r))),
+    borderColor: [palette.violet, palette.amber][i],
+    backgroundColor: [palette.violet, palette.amber][i],
+    tension: .25,
+    yAxisID: "y1"
+  }));
+  chart("annualCustomerTypeChart", "bar", labels, [...typeSeries, ...countSeries], {
+    scales: {
+      x: { stacked: true, grid: { color: palette.grid }, ticks: { color: palette.tick } },
+      y: { stacked: true, beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${fmtWan(v)}w` } },
+      y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, ticks: { color: palette.tick, precision: 0 } }
+    },
+    plugins: {
+      legend: { display: true },
+      tooltip: { callbacks: { label(ctx) { return ctx.dataset.yAxisID === "y1" ? `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}个` : `${ctx.dataset.label}: ${fmtWan(ctx.parsed.y)}w`; } } }
+    }
+  });
+
+  const selfValues = months.map(selfSpendByMonth);
+  const localValues = months.map(month => sumByMonth(source, month));
+  chart("annualSelfShareChart", "line", labels, [{
+    label: "自运营占比",
+    data: selfValues.map((value, index) => localValues[index] ? value / localValues[index] * 100 : 0),
+    rawValues: selfValues,
+    borderColor: palette.violet,
+    backgroundColor: "rgba(91,110,225,.12)",
+    tension: .25
+  }], {
+    scales: {
+      y: { beginAtZero: true, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
+      x: { grid: { color: palette.grid }, ticks: { color: palette.tick } }
+    },
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label(ctx) { return `自运营占比 ${pctFmt.format(ctx.parsed.y)}%｜自运营 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w`; } } }
+    }
+  });
+
+  const topIndustries = group(source, r => r[cols["一级行业"]] || "未填写")
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8)
+    .map(x => x.label);
+  chart("annualIndustryTrendChart", "line", labels, topIndustries.map((industry, i) => ({
+    label: industry,
+    data: months.map(month => sumByMonth(source, month, r => (r[cols["一级行业"]] || "未填写") === industry)),
+    borderColor: [palette.blue, palette.green, palette.amber, palette.red, palette.violet, "#0ea5e9", "#14b8a6", "#64748b"][i],
+    backgroundColor: "rgba(47,107,255,.08)",
+    tension: .25
+  })), { plugins: { legend: { display: true } } });
+}
+
 function applyFilters() {
   const s = $("startDate").value || dataDateMin(rows);
   const e = $("endDate").value || dataDateMax(rows);
@@ -2331,7 +2510,7 @@ function downloadUploadedHistory() {
   const headers = ["上传时间", "文件名", ...((history[0] && history[0].columns) || [])];
   downloadCsv(headers, allRows, `上传历史数据-${Date.now()}.csv`);
 }
-function renderAll() { renderDashboard(); renderPublicity(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
+function renderAll() { renderAnnualOverview(); renderDashboard(); renderPublicity(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
 
 function init() {
   const minDate = dataDateMin(allRows);
@@ -2352,6 +2531,7 @@ function init() {
     document.body.classList.toggle("my-dashboard-active", panel === "myDashboard");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     $(panel === "myDashboard" ? "dashboard" : panel).classList.add("active");
+    if (panel === "annualOverview") renderAnnualOverview();
     if (panel === "dashboard" || panel === "myDashboard") renderDashboard();
     if (panel === "publicity") renderPublicity();
   };
@@ -2422,6 +2602,7 @@ function init() {
     e.target.value = "";
   };
   applyFilters();
+  if (isAdmin()) activatePanel("annualOverview");
   if (currentUser?.role === "person") activatePanel("myDashboard");
   if (!countdownTimer) countdownTimer = setInterval(updateCountdownClock, 1000);
 }

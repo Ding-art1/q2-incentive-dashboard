@@ -21,6 +21,7 @@
     </section>
     <aside class="sidebar">
       <h1>业绩看板</h1>
+      <button class="nav adminOnly" data-panel="annualOverview">全年总览</button>
       <button class="nav active" data-panel="dashboard">仪表盘</button>
       <button class="nav userOnly" data-panel="myDashboard">我的仪表盘</button>
       <button class="nav" data-panel="publicity">数据公示</button>
@@ -51,6 +52,41 @@
           <button id="applyFilters">确定</button>
         </section>
       </header>
+
+      <section id="annualOverview" class="panel adminOnly">
+        <section class="block annualHeroBlock">
+          <h3>全年总览看板</h3>
+          <div class="metricGrid" id="annualMetrics"></div>
+        </section>
+        <section class="block">
+          <h3>年度累计与月度消耗</h3>
+          <div class="grid two">
+            <article class="card"><h4>月度非赠款消耗</h4><canvas id="annualMonthSpendChart"></canvas></article>
+            <article class="card"><h4>每月业务消耗占比</h4><canvas id="annualBizShareChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>组织贡献结构</h3>
+          <div class="grid two">
+            <article class="card"><h4>每月销售组消耗占比</h4><canvas id="annualTeamShareChart"></canvas></article>
+            <article class="card"><h4>每月商务消耗占比</h4><canvas id="annualSalesShareChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>客户结构变化</h3>
+          <div class="grid two">
+            <article class="card"><h4>每月客户等级个数分布</h4><canvas id="annualGradeChart"></canvas></article>
+            <article class="card"><h4>直签 / 渠道消耗与项目数</h4><canvas id="annualCustomerTypeChart"></canvas></article>
+          </div>
+        </section>
+        <section class="block">
+          <h3>自运营与行业变化</h3>
+          <div class="grid two">
+            <article class="card"><h4>自运营消耗占比变化</h4><canvas id="annualSelfShareChart"></canvas></article>
+            <article class="card"><h4>一级行业消耗变化 TOP8</h4><canvas id="annualIndustryTrendChart"></canvas></article>
+          </div>
+        </section>
+      </section>
 
       <section id="dashboard" class="panel active">
         <section class="timebox">

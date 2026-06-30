@@ -265,6 +265,21 @@ button { cursor: pointer; font-weight: 700; }
 }
 .block { padding: 16px; margin-bottom: 14px; }
 .block > h3 { margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid #edf1f7; }
+.annualHeroBlock {
+  border-color: rgba(47,107,255,.22);
+  background:
+    radial-gradient(circle at 16% 0%, rgba(47,107,255,.12), transparent 34%),
+    linear-gradient(135deg, #f7fbff 0%, #fff 54%, #effdf6 100%);
+}
+#annualOverview .card {
+  min-height: 360px;
+}
+#annualOverview .metric {
+  border-left-width: 5px;
+}
+#annualOverview .metric strong {
+  font-size: 28px;
+}
 .dashBlock {
   position: relative;
   overflow: hidden;
