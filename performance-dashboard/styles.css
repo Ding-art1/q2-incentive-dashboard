@@ -383,9 +383,9 @@ button { cursor: pointer; font-weight: 700; }
   border-color: rgba(245,158,11,.46);
 }
 .annualHeatCell.bottom {
-  border-color: rgba(239,68,68,.38);
-  background: linear-gradient(135deg, rgba(254,226,226,.92), rgba(47,107,255, calc(.05 + var(--heat) * .12)));
-  color: #991b1b;
+  border-color: rgba(100,116,139,.32);
+  background: linear-gradient(135deg, rgba(241,245,249,.96), rgba(148,163,184, calc(.08 + var(--heat) * .18)));
+  color: #475569;
 }
 .annualHeatCell.inactive {
   opacity: .48;
@@ -404,7 +404,7 @@ button { cursor: pointer; font-weight: 700; }
   font-style: normal;
 }
 .annualHeatCell.bottom i {
-  background: #ef4444;
+  background: #64748b;
 }
 .annualHeatTotal {
   background: #eef6ff;

@@ -923,14 +923,14 @@ function renderAnnualSalesHeatmap(source, months, salesNames) {
   const excludedNames = new Set(["詹紫微", "吕帅印", "程鹏", "魏筱宇"]);
   const earlyMonthExcluded = new Set(["于泽"]);
   const totals = months.map(month => sumByMonth(source, month));
-  const rows = salesNames.filter(name => !excludedNames.has(name)).map(name => {
+  const rows = salesNames.map(name => {
     const values = months.map(month => sumByMonth(source, month, r => r[cols["商务"]] === name));
     const shares = values.map((value, index) => totals[index] ? value / totals[index] * 100 : 0);
     return { name, values, shares, total: values.reduce((acc, value) => acc + value, 0) };
   }).filter(row => row.total > 0);
   const rankByMonth = months.map((_, monthIndex) => {
     const ranked = rows
-      .filter(row => !(monthIndex < 3 && earlyMonthExcluded.has(row.name)))
+      .filter(row => !excludedNames.has(row.name) && !(monthIndex < 3 && earlyMonthExcluded.has(row.name)))
       .map(row => ({ ...row, share: row.shares[monthIndex], value: row.values[monthIndex] }))
       .filter(row => row.value > 0)
       .sort((a, b) => b.share - a.share);
@@ -944,7 +944,7 @@ function renderAnnualSalesHeatmap(source, months, salesNames) {
   const header = `<div class="annualHeatmapRow annualHeatmapHead" style="grid-template-columns:${columns}"><span>商务</span>${months.map(month => `<span>${esc(monthLabel(month))}</span>`).join("")}<span>年度合计</span></div>`;
   const body = rows.map(row => {
     const cells = row.shares.map((share, index) => {
-      const isInactive = index < 3 && earlyMonthExcluded.has(row.name);
+      const isInactive = excludedNames.has(row.name) || (index < 3 && earlyMonthExcluded.has(row.name));
       const topRank = rankByMonth[index].top.get(row.name);
       const bottomRank = rankByMonth[index].bottom.get(row.name);
       const alpha = Math.max(.08, Math.min(.9, share / maxShare));
@@ -959,7 +959,7 @@ function renderAnnualSalesHeatmap(source, months, salesNames) {
     return `<div class="annualHeatmapRow" style="grid-template-columns:${columns}"><strong>${esc(row.name)}</strong>${cells}<span class="annualHeatTotal">${fmtWan(row.total)}w</span></div>`;
   }).join("");
   const leaderText = months.map((month, index) => leaders[index] ? `${monthLabel(month)} ${leaders[index].name} ${pctFmt.format(leaders[index].shares[index])}%` : `${monthLabel(month)} -`).join("｜");
-  node.innerHTML = `<div class="annualLeaderLine">已排除：詹紫微、吕帅印、程鹏、魏筱宇；1-3月于泽不参与排名｜月度占比最高：${esc(leaderText)}</div><div class="annualHeatmap">${header}${body}</div>`;
+  node.innerHTML = `<div class="annualLeaderLine">不参与排名：詹紫微、吕帅印、程鹏、魏筱宇；1-3月于泽不参与排名｜月度占比最高：${esc(leaderText)}</div><div class="annualHeatmap">${header}${body}</div>`;
 }
 function renderAnnualIndustryTopList(source, months) {
   const node = $("annualIndustryTopList");
