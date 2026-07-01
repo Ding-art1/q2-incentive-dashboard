@@ -1184,12 +1184,18 @@ function renderAnnualOverview() {
     }
   });
 
-  const selfValues = months.map(selfSpendByMonth);
+  const selfShareSummary = payload.meta.selfOperatingShareSummary || null;
+  const selfShareMonths = selfShareSummary ? Object.keys(selfShareSummary).sort() : months;
+  const selfLabels = selfShareMonths.map(monthLabel);
+  const selfValues = selfShareSummary ? selfShareMonths.map(month => selfShareSummary[month]?.selfSpend || 0) : months.map(selfSpendByMonth);
   const selfBaseRows = annualSelfShareBaseRows();
-  const selfBaseValues = months.map(month => sumByMonth(selfBaseRows, month));
-  chart("annualSelfShareChart", "line", labels, [{
+  const selfBaseValues = selfShareSummary ? selfShareMonths.map(month => selfShareSummary[month]?.baseSpend || 0) : months.map(month => sumByMonth(selfBaseRows, month));
+  const selfShareValues = selfShareSummary
+    ? selfShareMonths.map(month => selfShareSummary[month]?.share || 0)
+    : selfValues.map((value, index) => selfBaseValues[index] ? Math.min(100, value / selfBaseValues[index] * 100) : 0);
+  chart("annualSelfShareChart", "line", selfLabels, [{
     label: "自运营占比",
-    data: selfValues.map((value, index) => selfBaseValues[index] ? Math.min(100, value / selfBaseValues[index] * 100) : 0),
+    data: selfShareValues,
     rawValues: selfValues,
     baseValues: selfBaseValues,
     borderColor: palette.violet,
@@ -1202,7 +1208,7 @@ function renderAnnualOverview() {
     },
     plugins: {
       legend: { display: false },
-      tooltip: { callbacks: { label(ctx) { return `自运营占比 ${pctFmt.format(ctx.parsed.y)}%｜自运营 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w｜分母 ${fmtWan(ctx.dataset.baseValues?.[ctx.dataIndex] || 0)}w`; } } }
+      tooltip: { callbacks: { label(ctx) { return `自运营占比 ${pctFmt.format(ctx.parsed.y)}%｜自运营消耗 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w｜本地推非赠款消耗 ${fmtWan(ctx.dataset.baseValues?.[ctx.dataIndex] || 0)}w`; } } }
     }
   });
 
