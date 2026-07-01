@@ -374,6 +374,24 @@ button { cursor: pointer; font-weight: 700; }
   background: linear-gradient(135deg, rgba(245,158,11,.26), rgba(47,107,255, calc(.08 + var(--heat) * .24)));
   color: #8a4b00;
 }
+.annualHeatCell.top1 {
+  border-color: rgba(245,158,11,.7);
+  box-shadow: inset 0 0 0 1px rgba(245,158,11,.18);
+}
+.annualHeatCell.top2,
+.annualHeatCell.top3 {
+  border-color: rgba(245,158,11,.46);
+}
+.annualHeatCell.bottom {
+  border-color: rgba(239,68,68,.38);
+  background: linear-gradient(135deg, rgba(254,226,226,.92), rgba(47,107,255, calc(.05 + var(--heat) * .12)));
+  color: #991b1b;
+}
+.annualHeatCell.inactive {
+  opacity: .48;
+  background: #f3f6fb;
+  border-style: dashed;
+}
 .annualHeatCell i {
   position: absolute;
   top: 4px;
@@ -384,6 +402,9 @@ button { cursor: pointer; font-weight: 700; }
   color: #fff;
   font-size: 9px;
   font-style: normal;
+}
+.annualHeatCell.bottom i {
+  background: #ef4444;
 }
 .annualHeatTotal {
   background: #eef6ff;

@@ -920,30 +920,46 @@ function selfSpendByMonth(month) {
 function renderAnnualSalesHeatmap(source, months, salesNames) {
   const node = $("annualSalesShareHeatmap");
   if (!node) return;
+  const excludedNames = new Set(["詹紫微", "吕帅印", "程鹏", "魏筱宇"]);
+  const earlyMonthExcluded = new Set(["于泽"]);
   const totals = months.map(month => sumByMonth(source, month));
-  const rows = salesNames.map(name => {
+  const rows = salesNames.filter(name => !excludedNames.has(name)).map(name => {
     const values = months.map(month => sumByMonth(source, month, r => r[cols["商务"]] === name));
     const shares = values.map((value, index) => totals[index] ? value / totals[index] * 100 : 0);
     return { name, values, shares, total: values.reduce((acc, value) => acc + value, 0) };
   }).filter(row => row.total > 0);
-  const leaders = months.map((_, monthIndex) => rows.reduce((best, row) => row.shares[monthIndex] > (best?.shares[monthIndex] || 0) ? row : best, null));
+  const rankByMonth = months.map((_, monthIndex) => {
+    const ranked = rows
+      .filter(row => !(monthIndex < 3 && earlyMonthExcluded.has(row.name)))
+      .map(row => ({ ...row, share: row.shares[monthIndex], value: row.values[monthIndex] }))
+      .filter(row => row.value > 0)
+      .sort((a, b) => b.share - a.share);
+    const top = new Map(ranked.slice(0, 3).map((row, index) => [row.name, index + 1]));
+    const bottom = new Map(ranked.slice(-3).reverse().map((row, index) => [row.name, index + 1]));
+    return { ranked, top, bottom };
+  });
+  const leaders = rankByMonth.map(item => item.ranked[0] || null);
   const maxShare = Math.max(1, ...rows.flatMap(row => row.shares));
   const columns = `132px repeat(${months.length}, minmax(92px, 1fr)) 108px`;
   const header = `<div class="annualHeatmapRow annualHeatmapHead" style="grid-template-columns:${columns}"><span>商务</span>${months.map(month => `<span>${esc(monthLabel(month))}</span>`).join("")}<span>年度合计</span></div>`;
   const body = rows.map(row => {
     const cells = row.shares.map((share, index) => {
-      const isTop = leaders[index]?.name === row.name && share > 0;
+      const isInactive = index < 3 && earlyMonthExcluded.has(row.name);
+      const topRank = rankByMonth[index].top.get(row.name);
+      const bottomRank = rankByMonth[index].bottom.get(row.name);
       const alpha = Math.max(.08, Math.min(.9, share / maxShare));
-      return `<span class="annualHeatCell${isTop ? " top" : ""}" style="--heat:${alpha}">
+      const rankClass = topRank ? ` top top${topRank}` : bottomRank ? ` bottom bottom${bottomRank}` : "";
+      const badge = topRank ? `TOP${topRank}` : bottomRank ? `倒${bottomRank}` : "";
+      return `<span class="annualHeatCell${rankClass}${isInactive ? " inactive" : ""}" style="--heat:${alpha}">
         <b>${pctFmt.format(share)}%</b>
         <em>${fmtWan(row.values[index])}w</em>
-        ${isTop ? "<i>TOP</i>" : ""}
+        ${badge ? `<i>${badge}</i>` : ""}
       </span>`;
     }).join("");
     return `<div class="annualHeatmapRow" style="grid-template-columns:${columns}"><strong>${esc(row.name)}</strong>${cells}<span class="annualHeatTotal">${fmtWan(row.total)}w</span></div>`;
   }).join("");
   const leaderText = months.map((month, index) => leaders[index] ? `${monthLabel(month)} ${leaders[index].name} ${pctFmt.format(leaders[index].shares[index])}%` : `${monthLabel(month)} -`).join("｜");
-  node.innerHTML = `<div class="annualLeaderLine">月度占比最高：${esc(leaderText)}</div><div class="annualHeatmap">${header}${body}</div>`;
+  node.innerHTML = `<div class="annualLeaderLine">已排除：詹紫微、吕帅印、程鹏、魏筱宇；1-3月于泽不参与排名｜月度占比最高：${esc(leaderText)}</div><div class="annualHeatmap">${header}${body}</div>`;
 }
 function renderAnnualIndustryTopList(source, months) {
   const node = $("annualIndustryTopList");
