@@ -215,6 +215,9 @@ body.annual-overview-active .topbar {
 body.annual-overview-active .filters {
   display: none;
 }
+body.targets-active .topbar {
+  display: none;
+}
 label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; }
 input, select, button {
   min-height: 36px;

@@ -2894,6 +2894,7 @@ function init() {
     }
     document.body.classList.toggle("my-dashboard-active", panel === "myDashboard");
     document.body.classList.toggle("annual-overview-active", panel === "annualOverview");
+    document.body.classList.toggle("targets-active", panel === "targets");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     $(panel === "myDashboard" ? "dashboard" : panel).classList.add("active");
     if (panel === "annualOverview") renderAnnualOverview();
