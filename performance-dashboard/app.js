@@ -2870,15 +2870,17 @@ function init() {
   $("targetMonth").innerHTML = months.map(month => `<option>${esc(month)}</option>`).join("");
   $("targetMonth").value = monthOf(maxDate);
   refreshTargetNameOptions();
-  const activatePanel = panel => {
+  const activatePanel = (panel, options = {}) => {
     const btn = document.querySelector(`.nav[data-panel="${panel}"]`);
     if (!btn) return;
     document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
-    document.querySelectorAll(".dashboardNavGroup").forEach(groupEl => {
-      const owner = groupEl.querySelector(".nav[data-panel]")?.dataset.panel;
-      groupEl.classList.toggle("open", owner === panel);
-    });
+    if (options.openNav !== false) {
+      document.querySelectorAll(".dashboardNavGroup").forEach(groupEl => {
+        const owner = groupEl.querySelector(".nav[data-panel]")?.dataset.panel;
+        groupEl.classList.toggle("open", owner === panel);
+      });
+    }
     document.body.classList.toggle("my-dashboard-active", panel === "myDashboard");
     document.body.classList.toggle("annual-overview-active", panel === "annualOverview");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
@@ -2891,7 +2893,14 @@ function init() {
     if ((btn.classList.contains("adminOnly") || btn.classList.contains("restrictedOnly")) && !isAdmin()) return;
     if (btn.classList.contains("userOnly") && isAdmin()) return;
     if (btn.dataset.panel === "dashboard" && currentUser?.role === "person") return;
-    activatePanel(btn.dataset.panel);
+    const panel = btn.dataset.panel;
+    const groupEl = btn.closest(".dashboardNavGroup");
+    const alreadyActive = btn.classList.contains("active");
+    if (groupEl && alreadyActive) {
+      groupEl.classList.toggle("open");
+      return;
+    }
+    activatePanel(panel);
   });
   document.querySelectorAll(".periodNavList").forEach(list => {
     list.onclick = e => {
