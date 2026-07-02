@@ -702,6 +702,25 @@ function setTargets(v) { localStorage.setItem(targetKey, JSON.stringify(v)); }
 function targetRows(month = "") {
   return Object.values(getTargets()).filter(row => !month || row.month === month);
 }
+function targetRowsForManager(month = "") {
+  const existing = targetRows(month);
+  if (!month) return existing;
+  const allTargets = targetRows();
+  const months = [...new Set(allTargets.map(row => row.month).filter(Boolean))].sort();
+  const templateMonth = months.filter(item => item < month).pop() || months[months.length - 1];
+  if (!templateMonth || templateMonth === month) return existing;
+  const existingIds = new Set(existing.map(targetId));
+  const templateRows = allTargets
+    .filter(row => row.month === templateMonth)
+    .map(row => normalizeTargetRow({ ...row, month, spend: 0, fresh: 0 }))
+    .filter(row => {
+      const id = targetId(row);
+      if (existingIds.has(id)) return false;
+      existingIds.add(id);
+      return true;
+    });
+  return [...existing, ...templateRows];
+}
 function targetFor(month, level, name, biz = "") {
   const targetBiz = level === "business" ? "" : biz || "本地推";
   return getTargets()[`${month}|${level}|${name}|${targetBiz}`] || { month, level, name, biz: targetBiz, spend: 0, fresh: 0 };
@@ -2140,7 +2159,7 @@ function renderTargets() {
     ["team", "销售组目标"],
     ["person", "商务个人目标"]
   ];
-  const sourceRows = targetRows(month).sort((a, b) => targetSortValue(a).localeCompare(targetSortValue(b), "zh-CN"));
+  const sourceRows = targetRowsForManager(month).sort((a, b) => targetSortValue(a).localeCompare(targetSortValue(b), "zh-CN"));
   targetRenderRows = sourceRows;
   if ($("targetSummary")) {
     $("targetSummary").innerHTML = groups.map(([level, title]) => {
