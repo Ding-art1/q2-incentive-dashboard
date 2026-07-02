@@ -1146,11 +1146,15 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
 }
 .targetEditor {
   display: grid;
-  grid-template-columns: 120px 120px minmax(150px, 1fr) 130px 150px 110px 110px;
+  grid-template-columns: minmax(160px, 220px);
   gap: 12px;
   align-items: end;
   padding: 14px;
   margin-bottom: 14px;
+}
+.targetEditor label:not(:first-child),
+.targetEditor #saveTarget {
+  display: none;
 }
 .targetManagerBlock > h3 {
   display: flex;

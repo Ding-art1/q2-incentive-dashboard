@@ -2161,7 +2161,7 @@ function renderTargets() {
     if (!groupRows.length) return "";
     const groupSpend = groupRows.reduce((acc, item) => acc + Number(item.row.spend || 0), 0);
     const groupFresh = groupRows.reduce((acc, item) => acc + Number(item.row.fresh || 0), 0);
-    const heading = `<tr class="targetSectionRow"><td colspan="11">${esc(title)}<span>${fmtMoney(groupRows.length)} 条｜目标消耗 ${fmtWan(groupSpend)}w｜新开 ${fmtMoney(groupFresh)}</span></td></tr>`;
+    const heading = `<tr class="targetSectionRow"><td colspan="10">${esc(title)}<span>${fmtMoney(groupRows.length)} 条｜目标消耗 ${fmtWan(groupSpend)}w｜新开 ${fmtMoney(groupFresh)}</span></td></tr>`;
     return heading + groupRows.map(({ row, index }) => {
       const biz = targetBusiness(row);
       const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, rows, biz));
@@ -2177,14 +2177,10 @@ function renderTargets() {
         <td class="num"><input class="targetInlineInput small" data-target-field="fresh" type="number" min="0" step="1" value="${row.fresh || 0}" aria-label="${esc(row.name)}新开目标" /></td>
         <td class="num">${fmtMoney(actualNew)}</td>
         <td>${fmtPct(actualNew, row.fresh)}</td>
-        <td><button class="targetRowSave" type="button" data-save-target-index="${index}">保存</button></td>
       </tr>`;
     }).join("");
   }).join("");
-  $("targetTable").innerHTML = `<thead><tr><th>月份</th><th>层级</th><th>对象</th><th>目标业务</th><th class="num">消耗目标（万）</th><th class="num">实际消耗</th><th>消耗完成</th><th class="num">新开目标</th><th class="num">实际新开</th><th>新开完成</th><th>操作</th></tr></thead><tbody>${body || `<tr><td colspan="11" class="empty">暂无目标</td></tr>`}</tbody>`;
-  $("targetTable").querySelectorAll("[data-save-target-index]").forEach(btn => {
-    btn.onclick = () => saveInlineTargetRow(Number(btn.dataset.saveTargetIndex));
-  });
+  $("targetTable").innerHTML = `<thead><tr><th>月份</th><th>层级</th><th>对象</th><th>目标业务</th><th class="num">消耗目标（万）</th><th class="num">实际消耗</th><th>消耗完成</th><th class="num">新开目标</th><th class="num">实际新开</th><th>新开完成</th></tr></thead><tbody>${body || `<tr><td colspan="10" class="empty">暂无目标</td></tr>`}</tbody>`;
 }
 
 function customerFilterRowsForMonth(month, endLimit = "") {
