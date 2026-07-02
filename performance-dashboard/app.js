@@ -132,6 +132,7 @@ let rows = allRows;
 let filtered = rows;
 let sortState = { col: 0, dir: "asc" };
 let page = 1;
+let targetRenderRows = [];
 let lostRows = [];
 let lostElapsedDays = 0;
 const pageSize = 50;
@@ -185,6 +186,61 @@ function previousDateInRows(list = allRows, date = "") {
 function dataMonths(list = allRows) { return [...new Set(list.map(r => r[cols.monthKey]).filter(Boolean))].sort(); }
 function sum(list, idx = cols["非赠款消耗"]) { return list.reduce((acc, row) => acc + Number(row[idx] || 0), 0); }
 function esc(v) { return `${v ?? ""}`.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch])); }
+function monthEnd(year, month) { return dateStr(new Date(year, month, 0)); }
+function dashboardOptionYear() {
+  return Number((dataDateMax(allRows) || meta.dateMax || "2026-01-01").slice(0, 4)) || 2026;
+}
+function fillDashboardPeriodOptions() {
+  const el = $("periodQuick");
+  if (!el) return;
+  const year = dashboardOptionYear();
+  const monthOptions = Array.from({ length: 12 }, (_, i) => {
+    const month = String(i + 1).padStart(2, "0");
+    return `<option value="M:${year}-${month}">M${i + 1}</option>`;
+  }).join("");
+  const quarterOptions = [1, 2, 3, 4].map(q => `<option value="Q:${year}-Q${q}">Q${q}</option>`).join("");
+  el.innerHTML = `<option value="">自定义日期</option><optgroup label="月份">${monthOptions}</optgroup><optgroup label="季度">${quarterOptions}</optgroup>`;
+}
+function periodRange(value) {
+  const maxDate = dataDateMax(allRows);
+  if (!value) return null;
+  const [kind, token] = value.split(":");
+  if (kind === "M") {
+    const [yearText, monthText] = token.split("-");
+    const year = Number(yearText);
+    const month = Number(monthText);
+    const start = `${yearText}-${monthText}-01`;
+    let end = monthEnd(year, month);
+    if (maxDate >= start && maxDate <= end) end = maxDate;
+    return { start, end };
+  }
+  if (kind === "Q") {
+    const match = token.match(/^(\d{4})-Q([1-4])$/);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const quarter = Number(match[2]);
+    const startMonth = (quarter - 1) * 3 + 1;
+    const endMonth = startMonth + 2;
+    const start = `${year}-${String(startMonth).padStart(2, "0")}-01`;
+    let end = monthEnd(year, endMonth);
+    if (maxDate >= start && maxDate <= end) end = maxDate;
+    return { start, end };
+  }
+  return null;
+}
+function applyDashboardPeriod(value) {
+  const range = periodRange(value);
+  if (!range) return;
+  $("startDate").value = range.start;
+  $("endDate").value = range.end;
+  applyFilters();
+}
+function setDashboardMonthRange(maxDate = dataDateMax(allRows)) {
+  if ($("startDate")) $("startDate").value = maxDate.slice(0, 7) + "-01";
+  if ($("endDate")) $("endDate").value = maxDate;
+  fillDashboardPeriodOptions();
+  if ($("periodQuick")) $("periodQuick").value = `M:${monthOf(maxDate)}`;
+}
 function rankBadge(index) {
   return index < 3 ? `<em class="topBadge top${index + 1}">TOP${index + 1}</em>` : "";
 }
@@ -303,11 +359,7 @@ async function loadCloudData({ refresh = false } = {}) {
     const data = await res.json();
     const ok = applyCloudSnapshot(data, `已同步云端数据：${data.updatedAt || "最新版本"}`);
     if (refresh && ok) {
-      const max = dataDateMax(allRows);
-      if ($("startDate") && $("endDate")) {
-        $("startDate").value = max.slice(0, 7) + "-01";
-        $("endDate").value = max;
-      }
+      setDashboardMonthRange(dataDateMax(allRows));
       applyFilters();
     }
     return ok;
@@ -2005,28 +2057,101 @@ function saveTarget() {
   autoPublishCloud("Update dashboard targets");
 }
 
+function targetSortValue(row) {
+  const levelOrder = { business: 0, team: 1, person: 2 };
+  const bizOrder = { 本地推: 0, 代充值: 1, 代运营: 2 };
+  return [
+    levelOrder[row.level] ?? 9,
+    row.name,
+    bizOrder[targetBusiness(row)] ?? 9
+  ].join("|");
+}
+
+function saveInlineTargetRows(indexes = null) {
+  const targets = getTargets();
+  const selector = indexes ? indexes.map(index => `#targetTable tr[data-target-index="${index}"]`).join(",") : "#targetTable tr[data-target-index]";
+  const triggerSelector = indexes ? `[data-save-target-index="${indexes[0]}"]` : "#saveAllTargets";
+  document.querySelectorAll(selector).forEach(tr => {
+    const base = targetRenderRows[Number(tr.dataset.targetIndex)];
+    if (!base) return;
+    const spendInput = tr.querySelector('[data-target-field="spend"]');
+    const freshInput = tr.querySelector('[data-target-field="fresh"]');
+    const row = normalizeTargetRow({
+      ...base,
+      spend: Number(spendInput?.value || 0) * 10000,
+      fresh: Number(freshInput?.value || 0)
+    });
+    targets[targetId(row)] = row;
+  });
+  setTargets(targets);
+  renderAll();
+  refreshTargetNameOptions();
+  const trigger = document.querySelector(triggerSelector);
+  if (trigger) {
+    trigger.textContent = "已保存";
+    setTimeout(() => { trigger.textContent = indexes ? "保存" : "保存本页目标"; }, 1200);
+  }
+  autoPublishCloud("Update dashboard targets");
+}
+
+function saveInlineTargetRow(index) {
+  saveInlineTargetRows([index]);
+}
+
 function renderTargets() {
   if (!$("targetTable")) return;
   const month = $("targetMonth").value || monthOf($("endDate").value || dataDateMax(rows));
   const levelName = { business: "业务", team: "销售组", person: "商务个人" };
-  const body = targetRows(month).map(row => {
-    const biz = targetBusiness(row);
-    const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, rows, biz));
-    const actualNew = actualNewForTarget(row.month, row.level, row.name, rows, true, biz);
-    return `<tr>
-      <td>${esc(row.month)}</td>
-      <td>${levelName[row.level] || row.level}</td>
-      <td>${esc(row.name)}</td>
-      <td>${esc(biz)}</td>
-      <td class="num">${fmtWan(row.spend)}w</td>
-      <td class="num">${fmtWan(actualSpend)}w</td>
-      <td>${fmtPct(actualSpend, row.spend)}</td>
-      <td class="num">${fmtMoney(row.fresh)}</td>
-      <td class="num">${fmtMoney(actualNew)}</td>
-      <td>${fmtPct(actualNew, row.fresh)}</td>
-    </tr>`;
+  const groups = [
+    ["business", "业务目标"],
+    ["team", "销售组目标"],
+    ["person", "商务个人目标"]
+  ];
+  const sourceRows = targetRows(month).sort((a, b) => targetSortValue(a).localeCompare(targetSortValue(b), "zh-CN"));
+  targetRenderRows = sourceRows;
+  if ($("targetSummary")) {
+    $("targetSummary").innerHTML = groups.map(([level, title]) => {
+      const list = sourceRows.filter(row => row.level === level);
+      const targetSpend = list.reduce((acc, row) => acc + Number(row.spend || 0), 0);
+      const targetFresh = list.reduce((acc, row) => acc + Number(row.fresh || 0), 0);
+      return `<article>
+        <strong>${esc(title)}</strong>
+        <span>${fmtMoney(list.length)} 条目标</span>
+        <em>消耗 ${fmtWan(targetSpend)}w｜新开 ${fmtMoney(targetFresh)}</em>
+      </article>`;
+    }).join("");
+  }
+  const body = groups.map(([level, title]) => {
+    const groupRows = sourceRows
+      .map((row, index) => ({ row, index }))
+      .filter(item => item.row.level === level);
+    if (!groupRows.length) return "";
+    const groupSpend = groupRows.reduce((acc, item) => acc + Number(item.row.spend || 0), 0);
+    const groupFresh = groupRows.reduce((acc, item) => acc + Number(item.row.fresh || 0), 0);
+    const heading = `<tr class="targetSectionRow"><td colspan="11">${esc(title)}<span>${fmtMoney(groupRows.length)} 条｜目标消耗 ${fmtWan(groupSpend)}w｜新开 ${fmtMoney(groupFresh)}</span></td></tr>`;
+    return heading + groupRows.map(({ row, index }) => {
+      const biz = targetBusiness(row);
+      const actualSpend = sum(actualRowsForTarget(row.month, row.level, row.name, rows, biz));
+      const actualNew = actualNewForTarget(row.month, row.level, row.name, rows, true, biz);
+      return `<tr data-target-index="${index}">
+        <td>${esc(row.month)}</td>
+        <td>${levelName[row.level] || row.level}</td>
+        <td>${esc(row.name)}</td>
+        <td>${esc(biz)}</td>
+        <td class="num targetInputCell"><input class="targetInlineInput" data-target-field="spend" type="number" min="0" step="1" value="${Math.round((row.spend || 0) / 10000)}" aria-label="${esc(row.name)}消耗目标" /><span>w</span></td>
+        <td class="num">${fmtWan(actualSpend)}w</td>
+        <td>${fmtPct(actualSpend, row.spend)}</td>
+        <td class="num"><input class="targetInlineInput small" data-target-field="fresh" type="number" min="0" step="1" value="${row.fresh || 0}" aria-label="${esc(row.name)}新开目标" /></td>
+        <td class="num">${fmtMoney(actualNew)}</td>
+        <td>${fmtPct(actualNew, row.fresh)}</td>
+        <td><button class="targetRowSave" type="button" data-save-target-index="${index}">保存</button></td>
+      </tr>`;
+    }).join("");
   }).join("");
-  $("targetTable").innerHTML = `<thead><tr><th>月份</th><th>层级</th><th>对象</th><th>目标业务</th><th class="num">消耗目标</th><th class="num">实际消耗</th><th>消耗完成</th><th class="num">新开目标</th><th class="num">实际新开</th><th>新开完成</th></tr></thead><tbody>${body || `<tr><td colspan="10" class="empty">暂无目标</td></tr>`}</tbody>`;
+  $("targetTable").innerHTML = `<thead><tr><th>月份</th><th>层级</th><th>对象</th><th>目标业务</th><th class="num">消耗目标（万）</th><th class="num">实际消耗</th><th>消耗完成</th><th class="num">新开目标</th><th class="num">实际新开</th><th>新开完成</th><th>操作</th></tr></thead><tbody>${body || `<tr><td colspan="11" class="empty">暂无目标</td></tr>`}</tbody>`;
+  $("targetTable").querySelectorAll("[data-save-target-index]").forEach(btn => {
+    btn.onclick = () => saveInlineTargetRow(Number(btn.dataset.saveTargetIndex));
+  });
 }
 
 function customerFilterRowsForMonth(month, endLimit = "") {
@@ -2718,8 +2843,7 @@ function init() {
   const maxDate = dataDateMax(allRows);
   const months = dataMonths(rows);
   $("dataMeta").textContent = `数据范围 ${minDate} 至 ${maxDate}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
-  $("startDate").value = maxDate.slice(0, 7) + "-01";
-  $("endDate").value = maxDate;
+  setDashboardMonthRange(maxDate);
   for (const biz of [...new Set(allRows.map(r => r[cols["合作模式-DOSS"]]))]) $("bizFilter").insertAdjacentHTML("beforeend", `<option>${esc(biz)}</option>`);
   $("targetMonth").innerHTML = months.map(month => `<option>${esc(month)}</option>`).join("");
   $("targetMonth").value = monthOf(maxDate);
@@ -2744,7 +2868,10 @@ function init() {
     activatePanel(btn.dataset.panel);
   });
   $("applyFilters").onclick = applyFilters;
-  $("resetFilters").onclick = () => { const max = dataDateMax(allRows); $("startDate").value = max.slice(0, 7) + "-01"; $("endDate").value = max; $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
+  $("periodQuick").onchange = e => applyDashboardPeriod(e.target.value);
+  $("startDate").onchange = () => { $("periodQuick").value = ""; };
+  $("endDate").onchange = () => { $("periodQuick").value = ""; };
+  $("resetFilters").onclick = () => { setDashboardMonthRange(dataDateMax(allRows)); $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
   $("tableSearch").oninput = () => { page = 1; renderDetails(); };
   $("prevPage").onclick = () => { page--; renderDetails(); };
   $("nextPage").onclick = () => { page++; renderDetails(); };
@@ -2754,6 +2881,7 @@ function init() {
   $("targetName").onchange = () => { refreshTargetBizOptions(); loadTargetEditorValues(); };
   $("targetBiz").onchange = loadTargetEditorValues;
   $("saveTarget").onclick = saveTarget;
+  $("saveAllTargets").onclick = () => saveInlineTargetRows();
   $("customerLookupBtn").onclick = renderCustomerLookup;
   $("customerLookupInput").onkeydown = e => { if (e.key === "Enter") renderCustomerLookup(); };
   $("customerLookupClear").onclick = () => { $("customerLookupInput").value = ""; renderCustomerLookup(); };
@@ -2796,8 +2924,7 @@ function init() {
     rebuildAllRows();
     rows = scopedRowsFor(currentUser);
     const max = dataDateMax(allRows);
-    $("startDate").value = max.slice(0, 7) + "-01";
-    $("endDate").value = max;
+    setDashboardMonthRange(max);
     $("dataMeta").textContent = `数据范围 ${dataDateMin(allRows)} 至 ${max}｜生成于 ${meta.generatedAt}｜当前权限 ${currentUser.scopeLabel}｜可见 ${fmtMoney(rows.length)} 行`;
     applyFilters();
     autoPublishCloud(`Upload ${file.name}`);

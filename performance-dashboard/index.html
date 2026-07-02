@@ -46,6 +46,7 @@
         <section class="filters">
           <label>开始日期<input id="startDate" type="date" /></label>
           <label>结束日期<input id="endDate" type="date" /></label>
+          <label>仪表盘周期<select id="periodQuick"><option value="">自定义日期</option></select></label>
           <label>合作模式<select id="bizFilter"><option value="">全部</option></select></label>
           <label>客户类型<select id="typeFilter"><option value="">全部</option><option>直签</option><option>渠道</option></select></label>
           <button id="resetFilters">重置</button>
@@ -263,7 +264,11 @@
           <label>月度新开目标<input id="targetNew" type="number" min="0" step="1" placeholder="例如 10" /></label>
           <button id="saveTarget">保存目标</button>
         </section>
-        <section class="block"><h3>目标明细</h3><div class="tableWrap compact"><table id="targetTable"></table></div></section>
+        <section class="block targetManagerBlock">
+          <h3><span>目标总览与维护</span><button id="saveAllTargets" class="inlineBtn" type="button">保存本页目标</button></h3>
+          <div id="targetSummary" class="targetSummary"></div>
+          <div class="tableWrap compact targetTableWrap"><table id="targetTable"></table></div>
+        </section>
       </section>
 
       <section id="customers" class="panel">

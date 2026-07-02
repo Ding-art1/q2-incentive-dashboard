@@ -155,7 +155,7 @@ p { margin: 6px 0 0; color: var(--muted); }
 }
 .filters {
   display: grid;
-  grid-template-columns: repeat(4, minmax(150px, 1fr)) 100px 100px;
+  grid-template-columns: repeat(5, minmax(140px, 1fr)) 100px 100px;
   gap: 10px;
   padding: 14px;
   background: rgba(255,255,255,.96);
@@ -1100,6 +1100,92 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   padding: 14px;
   margin-bottom: 14px;
 }
+.targetManagerBlock > h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.targetSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.targetSummary article {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--blue);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff, #f7fbff);
+  padding: 12px 14px;
+}
+.targetSummary article:nth-child(2) { border-left-color: var(--green); }
+.targetSummary article:nth-child(3) { border-left-color: var(--amber); }
+.targetSummary strong {
+  display: block;
+  font-size: 15px;
+  color: var(--text);
+}
+.targetSummary span,
+.targetSummary em {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-style: normal;
+  font-size: 12px;
+}
+.targetTableWrap.tableWrap.compact { max-height: 560px; }
+.targetSectionRow td {
+  position: sticky;
+  top: 37px;
+  z-index: 1;
+  background: #eef5ff;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+.targetSectionRow span {
+  margin-left: 12px;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 12px;
+}
+.targetInputCell {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 4px;
+}
+.targetInlineInput {
+  width: 96px;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid #cdd8ea;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  text-align: right;
+}
+.targetInlineInput.small { width: 72px; }
+.targetInlineInput:focus {
+  outline: 2px solid rgba(47, 107, 255, .18);
+  border-color: var(--blue);
+}
+.targetRowSave {
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 1px solid #cdd8ea;
+  border-radius: 8px;
+  background: #fff;
+  color: var(--blue);
+  font-weight: 800;
+  cursor: pointer;
+}
+.targetRowSave:hover {
+  border-color: var(--blue);
+  background: #f3f7ff;
+}
 .dataActions {
   display: flex;
   gap: 10px;
@@ -1360,13 +1446,13 @@ th { position: sticky; top: 0; z-index: 1; background: #f6f8fc; cursor: pointer;
   .sidebar { position: static; height: auto; display: flex; gap: 8px; overflow-x: auto; }
   .sidebar h1 { display: none; }
   .nav { width: auto; white-space: nowrap; }
-  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .lookupTools, .cloudTools, .changeMetricGrid { grid-template-columns: 1fr 1fr; }
+  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .targetSummary, .lookupTools, .cloudTools, .changeMetricGrid { grid-template-columns: 1fr 1fr; }
   .publicTop, .publicGoalGrid, .publicRankGrid { grid-template-columns: 1fr; }
   .miniChartGrid { grid-template-columns: repeat(2, minmax(220px, 1fr)); }
 }
 @media (max-width: 680px) {
   main { padding: 16px; }
-  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .lookupTools, .cloudTools { grid-template-columns: 1fr; }
+  .filters, .timebox, .metricGrid, .bulletinGrid, .grid.two, .grid.three, .reportGrid, .dailyBizGrid, .dailyTeamGrid, .dailyTwoCol, .uploadBox, .targetEditor, .targetSummary, .lookupTools, .cloudTools { grid-template-columns: 1fr; }
   .reportHero { align-items: flex-start; flex-direction: column; }
   .publicBoard { padding: 12px; }
   .miniChartGrid { grid-template-columns: 1fr; }
