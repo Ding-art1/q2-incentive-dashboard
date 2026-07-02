@@ -22,8 +22,18 @@
     <aside class="sidebar">
       <h1>业绩看板</h1>
       <button class="nav adminOnly" data-panel="annualOverview">全年总览</button>
-      <button class="nav active" data-panel="dashboard">仪表盘</button>
-      <button class="nav userOnly" data-panel="myDashboard">我的仪表盘</button>
+      <div class="navGroup dashboardNavGroup">
+        <button class="nav navToggle active" data-panel="dashboard" type="button">
+          <span>仪表盘</span><span class="navChevron">⌄</span>
+        </button>
+        <div class="navSubmenu periodNavList" data-period-owner="dashboard"></div>
+      </div>
+      <div class="navGroup userOnly dashboardNavGroup">
+        <button class="nav navToggle userOnly" data-panel="myDashboard" type="button">
+          <span>我的仪表盘</span><span class="navChevron">⌄</span>
+        </button>
+        <div class="navSubmenu periodNavList" data-period-owner="myDashboard"></div>
+      </div>
       <button class="nav" data-panel="publicity">数据公示</button>
       <button class="nav restrictedOnly" data-panel="daily">日报</button>
       <button class="nav" data-panel="details">消耗明细</button>

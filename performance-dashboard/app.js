@@ -200,6 +200,25 @@ function fillDashboardPeriodOptions() {
   }).join("");
   const quarterOptions = [1, 2, 3, 4].map(q => `<option value="Q:${year}-Q${q}">Q${q}</option>`).join("");
   el.innerHTML = `<option value="">自定义日期</option><optgroup label="月份">${monthOptions}</optgroup><optgroup label="季度">${quarterOptions}</optgroup>`;
+  fillDashboardPeriodNavs(year);
+}
+function fillDashboardPeriodNavs(year = dashboardOptionYear()) {
+  const monthButtons = Array.from({ length: 12 }, (_, i) => {
+    const month = String(i + 1).padStart(2, "0");
+    return `<button class="navSubitem" type="button" data-period-value="M:${year}-${month}">M${i + 1}</button>`;
+  }).join("");
+  const quarterButtons = [1, 2, 3, 4]
+    .map(q => `<button class="navSubitem" type="button" data-period-value="Q:${year}-Q${q}">Q${q}</button>`)
+    .join("");
+  document.querySelectorAll(".periodNavList").forEach(list => {
+    list.innerHTML = `<div class="navPeriodTitle">月份</div>${monthButtons}<div class="navPeriodTitle">季度</div>${quarterButtons}`;
+  });
+  syncPeriodNavSelection();
+}
+function syncPeriodNavSelection(value = $("periodQuick")?.value || "") {
+  document.querySelectorAll(".navSubitem[data-period-value]").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.periodValue === value);
+  });
 }
 function periodRange(value) {
   const maxDate = dataDateMax(allRows);
@@ -231,6 +250,8 @@ function periodRange(value) {
 function applyDashboardPeriod(value) {
   const range = periodRange(value);
   if (!range) return;
+  if ($("periodQuick")) $("periodQuick").value = value;
+  syncPeriodNavSelection(value);
   $("startDate").value = range.start;
   $("endDate").value = range.end;
   applyFilters();
@@ -240,6 +261,7 @@ function setDashboardMonthRange(maxDate = dataDateMax(allRows)) {
   if ($("endDate")) $("endDate").value = maxDate;
   fillDashboardPeriodOptions();
   if ($("periodQuick")) $("periodQuick").value = `M:${monthOf(maxDate)}`;
+  syncPeriodNavSelection(`M:${monthOf(maxDate)}`);
 }
 function rankBadge(index) {
   return index < 3 ? `<em class="topBadge top${index + 1}">TOP${index + 1}</em>` : "";
@@ -2853,6 +2875,10 @@ function init() {
     if (!btn) return;
     document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
+    document.querySelectorAll(".dashboardNavGroup").forEach(groupEl => {
+      const owner = groupEl.querySelector(".nav[data-panel]")?.dataset.panel;
+      groupEl.classList.toggle("open", owner === panel);
+    });
     document.body.classList.toggle("my-dashboard-active", panel === "myDashboard");
     document.body.classList.toggle("annual-overview-active", panel === "annualOverview");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
@@ -2867,10 +2893,20 @@ function init() {
     if (btn.dataset.panel === "dashboard" && currentUser?.role === "person") return;
     activatePanel(btn.dataset.panel);
   });
+  document.querySelectorAll(".periodNavList").forEach(list => {
+    list.onclick = e => {
+      const periodBtn = e.target.closest(".navSubitem[data-period-value]");
+      if (!periodBtn) return;
+      const owner = list.dataset.periodOwner || "dashboard";
+      if (owner === "dashboard" && currentUser?.role === "person") return;
+      activatePanel(owner);
+      applyDashboardPeriod(periodBtn.dataset.periodValue);
+    };
+  });
   $("applyFilters").onclick = applyFilters;
   $("periodQuick").onchange = e => applyDashboardPeriod(e.target.value);
-  $("startDate").onchange = () => { $("periodQuick").value = ""; };
-  $("endDate").onchange = () => { $("periodQuick").value = ""; };
+  $("startDate").onchange = () => { $("periodQuick").value = ""; syncPeriodNavSelection(""); };
+  $("endDate").onchange = () => { $("periodQuick").value = ""; syncPeriodNavSelection(""); };
   $("resetFilters").onclick = () => { setDashboardMonthRange(dataDateMax(allRows)); $("bizFilter").value = ""; $("typeFilter").value = ""; applyFilters(); };
   $("tableSearch").oninput = () => { page = 1; renderDetails(); };
   $("prevPage").onclick = () => { page--; renderDetails(); };
@@ -2932,7 +2968,8 @@ function init() {
   };
   applyFilters();
   if (isAdmin()) activatePanel("annualOverview");
-  if (currentUser?.role === "person") activatePanel("myDashboard");
+  else if (currentUser?.role === "person") activatePanel("myDashboard");
+  else activatePanel("dashboard");
   if (!countdownTimer) countdownTimer = setInterval(updateCountdownClock, 1000);
 }
 async function bootstrap() {

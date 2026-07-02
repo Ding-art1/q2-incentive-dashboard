@@ -39,7 +39,7 @@ body.not-admin .restrictedOnly,
 body.admin-user .userOnly {
   display: none !important;
 }
-body.person-user .nav[data-panel="dashboard"] {
+body.person-user .sidebar > .dashboardNavGroup:not(.userOnly) {
   display: none !important;
 }
 body.person-user.my-dashboard-active .rechargeDashboardBlock {
@@ -98,6 +98,7 @@ body.team-user .userChangeView {
   box-shadow: 8px 0 28px rgba(17, 24, 39, .12);
 }
 .sidebar h1 { margin: 0 0 22px; font-size: 24px; letter-spacing: .2px; }
+.navGroup { margin: 8px 0; }
 .nav {
   display: block;
   width: 100%;
@@ -111,6 +112,54 @@ body.team-user .userChangeView {
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
+}
+.navToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.navGroup .nav { margin: 0; }
+.navChevron {
+  color: rgba(255,255,255,.64);
+  font-size: 16px;
+  line-height: 1;
+  transition: transform .18s ease;
+}
+.navGroup.open .navChevron { transform: rotate(180deg); }
+.navSubmenu {
+  display: none;
+  margin: 6px 0 10px;
+  padding: 4px 0 4px 16px;
+  border-left: 1px solid rgba(255,255,255,.18);
+}
+.navGroup.open .navSubmenu { display: grid; gap: 4px; }
+.navPeriodTitle {
+  margin: 8px 0 4px;
+  color: rgba(255,255,255,.48);
+  font-size: 12px;
+  font-weight: 800;
+}
+.navSubitem {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255,255,255,.72);
+  text-align: left;
+  font-weight: 700;
+  cursor: pointer;
+}
+.navSubitem:hover {
+  background: rgba(255,255,255,.10);
+  color: #fff;
+}
+.navSubitem.active {
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  border-color: rgba(255,255,255,.20);
+  box-shadow: inset 3px 0 0 var(--blue);
 }
 .nav.active, .nav:hover {
   background: rgba(255,255,255,.12);
