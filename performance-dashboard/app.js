@@ -263,6 +263,14 @@ function setDashboardMonthRange(maxDate = dataDateMax(allRows)) {
   if ($("periodQuick")) $("periodQuick").value = `M:${monthOf(maxDate)}`;
   syncPeriodNavSelection(`M:${monthOf(maxDate)}`);
 }
+function selectedDashboardMonth(fallbackDate = dataDateMax(allRows)) {
+  const value = $("periodQuick")?.value || "";
+  if (value.startsWith("M:")) return value.slice(2);
+  const start = $("startDate")?.value || "";
+  const end = $("endDate")?.value || "";
+  if (start && end && monthOf(start) === monthOf(end)) return monthOf(end);
+  return monthOf(end || fallbackDate);
+}
 function rankBadge(index) {
   return index < 3 ? `<em class="topBadge top${index + 1}">TOP${index + 1}</em>` : "";
 }
@@ -1559,42 +1567,45 @@ function renderDailyMetrics(y, prev, sourceRows = rows, sourceFiltered = filtere
 function renderDailyView() {
   const sourceRows = dashboardSourceRows();
   const latest = dataDateMax(sourceRows);
-  const year = dateObj(latest).getFullYear();
+  const selectedMonth = selectedDashboardMonth(latest);
+  const year = dateObj(`${selectedMonth || monthOf(latest)}-01`).getFullYear();
   const annualRows = localPushRows(sourceRows).filter(r => {
     const d = dateObj(r[cols.date]);
     return d.getFullYear() === year && r[cols.date] <= latest;
   });
-  const currentMonth = monthOf(latest);
-  const currentMonthRows = annualRows.filter(r => r[cols.monthKey] === currentMonth);
+  const selectedMonthRows = annualRows.filter(r => r[cols.monthKey] === selectedMonth);
   const business = [
     { name: "本地推", cls: "biz-local", color: palette.blue },
     { name: "代充值", cls: "biz-recharge", color: palette.green },
     { name: "代运营", cls: "biz-operate", color: palette.amber }
   ];
   $("avgDailyMetrics").innerHTML = business.map(item => {
-    const list = bizRows(currentMonthRows, item.name);
+    const list = bizRows(selectedMonthRows, item.name);
     return metric(`${item.name}当前平均日耗`, `${fmtWan(avgDaily(list))}w`, "", item.cls);
   }).join("");
-  const historyMonths = periodMonths(annualRows).filter(month => month < currentMonth).sort();
-  const dates = [...new Set(currentMonthRows.map(r => r[cols.date]))].sort();
-  const labels = [...historyMonths, ...dates];
-  $("dailyTrendTitle").textContent = `${year} 日耗趋势（月均 + ${currentMonth} 每日）`;
+  const months = periodMonths(annualRows).sort();
+  const dates = [...new Set(selectedMonthRows.map(r => r[cols.date]))].sort();
+  const labels = months.flatMap(month => month === selectedMonth ? dates : [month]);
+  $("dailyTrendTitle").textContent = `${year} 日耗趋势（${selectedMonth} 每日 + 其它月份月均）`;
   const datasets = business.flatMap(item => {
-    const list = bizRows(currentMonthRows, item.name);
-    const map = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
+    const list = bizRows(selectedMonthRows, item.name);
+    const dailyMap = new Map(group(list, r => r[cols.date]).map(x => [x.label, x.value]));
+    const monthlyAvgMap = new Map(months
+      .filter(month => month !== selectedMonth)
+      .map(month => [month, avgDaily(bizRows(annualRows.filter(r => r[cols.monthKey] === month), item.name))]));
     return [
       {
         type: "bar",
         label: `${item.name}历史月均`,
-        data: [...historyMonths.map(month => avgDaily(bizRows(annualRows.filter(r => r[cols.monthKey] === month), item.name))), ...dates.map(() => null)],
+        data: labels.map(label => monthlyAvgMap.get(label) ?? null),
         backgroundColor: item.color,
         borderColor: item.color,
         order: 2
       },
       {
         type: "line",
-        label: `${item.name}当前月每日`,
-        data: [...historyMonths.map(() => null), ...dates.map(date => map.get(date) || 0)],
+        label: `${item.name}选中月每日`,
+        data: labels.map(label => dailyMap.get(label) ?? null),
         borderColor: item.color,
         backgroundColor: "rgba(82,119,246,.08)",
         pointRadius: 2,
