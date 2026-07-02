@@ -1124,7 +1124,6 @@ function renderAnnualOverview() {
   const monthlyTotals = months.map(month => sumByMonth(source, month));
   const monthlyRecharge = months.map(month => sumByMonth(source, month, r => bizRows([r], "代充值").length > 0));
   const monthlyOperate = months.map(month => sumByMonth(source, month, r => bizRows([r], "代运营").length > 0));
-  const monthlyOtherLocal = monthlyTotals.map((value, index) => Math.max(0, value - monthlyRecharge[index] - monthlyOperate[index]));
   const monthlyMom = monthlyTotals.map((value, index) => {
     if (index === 0 || !monthlyTotals[index - 1]) return null;
     return (value - monthlyTotals[index - 1]) / monthlyTotals[index - 1] * 100;
@@ -1187,10 +1186,9 @@ function renderAnnualOverview() {
     }
   });
   shareChart("annualBizShareChart", months, [
-    { label: "其他本地推", values: monthlyOtherLocal },
     { label: "代充值", values: monthlyRecharge },
     { label: "代运营", values: monthlyOperate }
-  ], [palette.blue, palette.green, palette.amber]);
+  ], [palette.green, palette.amber]);
 
   const teamNames = ["销售一组", "销售二组", "未分组"];
   shareChart("annualTeamShareChart", months, teamNames.map(team => ({
