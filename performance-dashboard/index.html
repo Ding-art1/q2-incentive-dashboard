@@ -65,18 +65,18 @@
       </header>
 
       <section id="annualOverview" class="panel adminOnly">
-        <section class="block annualHeroBlock">
+        <section class="block annualBlock annualHeroBlock annualSummary">
           <h3>全年总览看板</h3>
           <div class="metricGrid" id="annualMetrics"></div>
         </section>
-        <section class="block">
+        <section class="block annualBlock annualSpend">
           <h3>年度累计与月度消耗</h3>
           <div class="grid two">
             <article class="card"><h4>月度非赠款消耗</h4><canvas id="annualMonthSpendChart"></canvas></article>
             <article class="card"><h4>每月业务消耗占比</h4><canvas id="annualBizShareChart"></canvas></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block annualBlock annualOrg">
           <h3>组织贡献结构</h3>
           <div class="grid two annualTeamGrid">
             <article class="card"><h4>每月销售组消耗占比</h4><canvas id="annualTeamShareChart"></canvas></article>
@@ -86,7 +86,7 @@
             <article class="card annualHeatmapCard"><h4>每月商务消耗占比</h4><div id="annualSalesShareHeatmap"></div></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block annualBlock annualCustomer">
           <h3>客户结构变化</h3>
           <div class="grid three">
             <article class="card"><h4>每月客户等级个数分布</h4><canvas id="annualGradeChart"></canvas></article>
@@ -94,7 +94,7 @@
             <article class="card"><h4>直签 / 渠道消耗与项目数</h4><canvas id="annualCustomerTypeChart"></canvas></article>
           </div>
         </section>
-        <section class="block">
+        <section class="block annualBlock annualTrend">
           <h3>自运营与行业变化</h3>
           <div class="grid annualSelfShareGrid">
             <article class="card annualSelfShareCard"><h4>自运营消耗占比变化</h4><canvas id="annualSelfShareChart"></canvas></article>
