@@ -136,6 +136,9 @@ let targetRenderRows = [];
 let lostRows = [];
 let lostElapsedDays = 0;
 const pageSize = 50;
+let activePanelKey = "dashboard";
+const renderedPanels = new Set();
+const XLSX_CDN = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
 
 function $(id) { return document.getElementById(id); }
 function fmtMoney(v) { return moneyFmt.format(v || 0); }
@@ -1314,14 +1317,34 @@ function renderAnnualOverview() {
   renderAnnualIndustryTopList(source, months);
 }
 
-function applyFilters() {
+function updateFilteredRows() {
   const s = $("startDate").value || dataDateMin(rows);
   const e = $("endDate").value || dataDateMax(rows);
   const biz = $("bizFilter").value;
   const type = $("typeFilter").value;
   filtered = rows.filter(row => row[cols.date] >= s && row[cols.date] <= e && (!biz || row[cols["合作模式-DOSS"]] === biz) && (!type || row[cols["客户类型"]] === type));
   page = 1;
+}
+function applyFilters() {
+  updateFilteredRows();
   renderAll();
+}
+function invalidatePanels() {
+  renderedPanels.clear();
+}
+function renderPanel(panel = activePanelKey, force = false) {
+  const key = panel || "dashboard";
+  if (!force && renderedPanels.has(key)) return;
+  if (key === "annualOverview") renderAnnualOverview();
+  else if (key === "dashboard" || key === "myDashboard") renderDashboard();
+  else if (key === "publicity") renderPublicity();
+  else if (key === "daily") renderReports();
+  else if (key === "details") renderDetails();
+  else if (key === "targets") renderTargets();
+  else if (key === "customers") renderCustomers();
+  else if (key === "changes") renderChanges();
+  else if (key === "dataManage") renderUploadHistory();
+  renderedPanels.add(key);
 }
 function filteredFor(list) {
   const s = $("startDate").value || dataDateMin(list);
@@ -2904,7 +2927,27 @@ function downloadUploadedHistory() {
   const headers = ["上传时间", "文件名", ...((history[0] && history[0].columns) || [])];
   downloadCsv(headers, allRows, `上传历史数据-${Date.now()}.csv`);
 }
-function renderAll() { renderAnnualOverview(); renderDashboard(); renderPublicity(); renderReports(); renderDetails(); renderTargets(); renderCustomers(); renderChanges(); }
+function loadXlsx() {
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${XLSX_CDN}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(window.XLSX), { once: true });
+      existing.addEventListener("error", reject, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = XLSX_CDN;
+    script.async = true;
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => reject(new Error("Excel 解析库加载失败"));
+    document.head.appendChild(script);
+  });
+}
+function renderAll() {
+  invalidatePanels();
+  renderPanel(activePanelKey, true);
+}
 
 function init() {
   const minDate = dataDateMin(allRows);
@@ -2919,6 +2962,7 @@ function init() {
   const activatePanel = (panel, options = {}) => {
     const btn = document.querySelector(`.nav[data-panel="${panel}"]`);
     if (!btn) return;
+    activePanelKey = panel;
     document.querySelectorAll(".nav").forEach(x => x.classList.remove("active"));
     btn.classList.add("active");
     if (options.openNav !== false) {
@@ -2932,9 +2976,7 @@ function init() {
     document.body.classList.toggle("targets-active", panel === "targets");
     document.querySelectorAll(".panel").forEach(p => p.classList.remove("active"));
     $(panel === "myDashboard" ? "dashboard" : panel).classList.add("active");
-    if (panel === "annualOverview") renderAnnualOverview();
-    if (panel === "dashboard" || panel === "myDashboard") renderDashboard();
-    if (panel === "publicity") renderPublicity();
+    renderPanel(panel);
   };
   document.querySelectorAll(".nav[data-panel]").forEach(btn => btn.onclick = () => {
     if ((btn.classList.contains("adminOnly") || btn.classList.contains("restrictedOnly")) && !isAdmin()) return;
@@ -2994,7 +3036,14 @@ function init() {
   $("uploadFile").onchange = async e => {
     if (!isAdmin()) return;
     const file = e.target.files[0];
-    if (!file || !window.XLSX) return;
+    if (!file) return;
+    try {
+      await loadXlsx();
+    } catch (err) {
+      cloudStatus("Excel 解析库加载失败，请检查网络后重试。", "bad");
+      e.target.value = "";
+      return;
+    }
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: "array", cellDates: true });
     const sheet = wb.Sheets[wb.SheetNames[0]];
@@ -3022,10 +3071,11 @@ function init() {
     autoPublishCloud(`Upload ${file.name}`);
     e.target.value = "";
   };
-  applyFilters();
-  if (isAdmin()) activatePanel("annualOverview");
-  else if (currentUser?.role === "person") activatePanel("myDashboard");
-  else activatePanel("dashboard");
+  const defaultPanel = isAdmin() ? "annualOverview" : currentUser?.role === "person" ? "myDashboard" : "dashboard";
+  activePanelKey = defaultPanel;
+  updateFilteredRows();
+  invalidatePanels();
+  activatePanel(defaultPanel);
   if (!countdownTimer) countdownTimer = setInterval(updateCountdownClock, 1000);
 }
 async function bootstrap() {
