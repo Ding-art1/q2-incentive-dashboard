@@ -1725,6 +1725,36 @@ function actualRowsForTarget(month, level, name, sourceRows = rows, biz = "") {
   return [];
 }
 
+function monthKeyFromRawDate(rawDate) {
+  if (rawDate instanceof Date && !Number.isNaN(rawDate.getTime())) return dateStr(rawDate).slice(0, 7);
+  const normalized = normalizeDateValue(rawDate);
+  return normalized ? normalized.slice(0, 7) : `${rawDate || ""}`.slice(0, 7);
+}
+
+function firstSpendMonthForOpportunity(opportunity, sourceRows = rows, scopedUploads = true) {
+  if (!opportunity) return "";
+  let firstMonth = "";
+  const remember = month => {
+    if (month && (!firstMonth || month < firstMonth)) firstMonth = month;
+  };
+  for (const row of sourceRows || []) {
+    if (row[cols["商机名称"]] !== opportunity) continue;
+    if (Number(row[cols["非赠款消耗"]] || 0) <= 0) continue;
+    remember(row[cols.monthKey] || monthOf(row[cols.date] || ""));
+  }
+  for (const item of uploadHistory()) {
+    for (const values of item.rows || []) {
+      const colMap = Object.fromEntries((item.columns || []).map((col, i) => [col, values[i]]));
+      if (scopedUploads && !uploadedRowAllowed(colMap)) continue;
+      const canonical = canonicalUploadRow(colMap);
+      if (canonical["商机名称"] !== opportunity) continue;
+      if (Number(canonical["非赠款消耗"] || 0) <= 0) continue;
+      remember(monthKeyFromRawDate(canonical["日期"]) || uploadDateOverride(item).slice(0, 7));
+    }
+  }
+  return firstMonth;
+}
+
 function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads = true, biz = "") {
   const labels = newLabels();
   const counted = new Set();
@@ -1732,6 +1762,7 @@ function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads
   for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(sourceRows), sourceRows)) {
     const label = effectiveNewLabel(entry, labels);
     if (!entry.opportunity || !isFreshCustomerLabel(label) || counted.has(entry.opportunity)) continue;
+    if (firstSpendMonthForOpportunity(entry.opportunity, sourceRows, scopedUploads) !== month) continue;
     const businessMatch = business === "本地推" ? entry.port === "巨量-本地推" : freshLabelMatchesBusiness(label, business);
     if (!businessMatch) continue;
     const match = level === "business"
@@ -1751,8 +1782,9 @@ function actualNewForTarget(month, level, name, sourceRows = rows, scopedUploads
       const label = labels[opportunity];
       if (!opportunity || !isFreshCustomerLabel(label) || counted.has(opportunity)) continue;
       const rawDate = colMap["日期"];
-      const rowMonth = rawDate instanceof Date ? dateStr(rawDate).slice(0, 7) : `${rawDate || ""}`.slice(0, 7);
+      const rowMonth = monthKeyFromRawDate(rawDate);
       if (rowMonth && rowMonth !== month) continue;
+      if (firstSpendMonthForOpportunity(opportunity, sourceRows, scopedUploads) !== month) continue;
       const biz = colMap["合作模式-DOSS"] || "";
       const port = colMap["媒体端口"] || "";
       const sales = colMap["商务"] || "";
@@ -1784,6 +1816,7 @@ function freshCustomerCounts(month) {
   for (const entry of baseNewEntriesForMonth(month, $("endDate").value || dataDateMax(rows))) {
     const label = effectiveNewLabel(entry, labels);
     if (!entry.opportunity || !isFreshCustomerLabel(label) || counted.has(entry.opportunity)) continue;
+    if (firstSpendMonthForOpportunity(entry.opportunity, rows, true) !== month) continue;
     counted.add(entry.opportunity);
     if (label === "代充值新客户") result.recharge += 1;
     if (label === "代运营新客户") result.operate += 1;
@@ -1796,8 +1829,9 @@ function freshCustomerCounts(month) {
       const label = labels[opportunity];
       if (!opportunity || !isFreshCustomerLabel(label) || counted.has(opportunity)) continue;
       const rawDate = colMap["日期"];
-      const rowMonth = rawDate instanceof Date ? dateStr(rawDate).slice(0, 7) : `${rawDate || ""}`.slice(0, 7);
+      const rowMonth = monthKeyFromRawDate(rawDate);
       if (rowMonth && rowMonth !== month) continue;
+      if (firstSpendMonthForOpportunity(opportunity, rows, true) !== month) continue;
       counted.add(opportunity);
       if (label === "代充值新客户") result.recharge += 1;
       if (label === "代运营新客户") result.operate += 1;
