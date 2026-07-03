@@ -2159,18 +2159,6 @@ function renderTargets() {
   ];
   const sourceRows = targetRowsForManager(month).sort((a, b) => targetSortValue(a).localeCompare(targetSortValue(b), "zh-CN"));
   targetRenderRows = sourceRows;
-  if ($("targetSummary")) {
-    $("targetSummary").innerHTML = groups.map(([level, title]) => {
-      const list = sourceRows.filter(row => row.level === level);
-      const targetSpend = list.reduce((acc, row) => acc + Number(row.spend || 0), 0);
-      const targetFresh = list.reduce((acc, row) => acc + Number(row.fresh || 0), 0);
-      return `<article>
-        <strong>${esc(title)}</strong>
-        <span>${fmtMoney(list.length)} 条目标</span>
-        <em>消耗 ${fmtWan(targetSpend)}w｜新开 ${fmtMoney(targetFresh)}</em>
-      </article>`;
-    }).join("");
-  }
   const body = groups.map(([level, title]) => {
     const groupRows = sourceRows
       .map((row, index) => ({ row, index }))
