@@ -321,6 +321,12 @@ function portRegion(portId) {
 function rowPortRegion(row) {
   return row[cols["端口归属"]] || portRegion(row[cols["端口ID"]]) || "未填写";
 }
+function normalizedPortRegion(row) {
+  const region = rowPortRegion(row);
+  if (String(region).includes("海南")) return "海南端口";
+  if (String(region).includes("深圳")) return "深圳端口";
+  return region;
+}
 function uploadDateFromFileName(fileName = "") {
   const match = `${fileName || ""}`.match(/incremental[_-](\d{4}-\d{2}-\d{2})/i);
   return match ? match[1] : "";
@@ -961,6 +967,22 @@ function monthLabel(month) {
 function sumByMonth(list, month, filterFn = () => true) {
   return sum(list.filter(r => r[cols.monthKey] === month && filterFn(r)));
 }
+function selfSpendByRows(list) {
+  return sum(list, cols["自运营消耗"]);
+}
+function selfShareStats(list, months, filterFn = () => true) {
+  return months.map(month => {
+    const rows = list.filter(r => r[cols.monthKey] === month && filterFn(r));
+    const selfSpend = selfSpendByRows(rows);
+    const baseSpend = sum(rows);
+    return {
+      month,
+      selfSpend,
+      baseSpend,
+      share: baseSpend ? Math.min(100, selfSpend / baseSpend * 100) : 0
+    };
+  });
+}
 function countProjectsByMonth(list, month, filterFn = () => true) {
   return uniqueCount(list.filter(r => r[cols.monthKey] === month && filterFn(r)), r => r[cols["项目"]] || r[cols["商机名称"]]);
 }
@@ -1286,15 +1308,11 @@ function renderAnnualOverview() {
     }
   });
 
-  const selfShareSummary = payload.meta.selfOperatingShareSummary || null;
-  const selfShareMonths = selfShareSummary ? Object.keys(selfShareSummary).sort() : months;
-  const selfLabels = selfShareMonths.map(monthLabel);
-  const selfValues = selfShareSummary ? selfShareMonths.map(month => selfShareSummary[month]?.selfSpend || 0) : months.map(selfSpendByMonth);
-  const selfBaseRows = annualSelfShareBaseRows();
-  const selfBaseValues = selfShareSummary ? selfShareMonths.map(month => selfShareSummary[month]?.baseSpend || 0) : months.map(month => sumByMonth(selfBaseRows, month));
-  const selfShareValues = selfShareSummary
-    ? selfShareMonths.map(month => selfShareSummary[month]?.share || 0)
-    : selfValues.map((value, index) => selfBaseValues[index] ? Math.min(100, value / selfBaseValues[index] * 100) : 0);
+  const selfLabels = months.map(monthLabel);
+  const selfStats = selfShareStats(source, months);
+  const selfValues = selfStats.map(item => item.selfSpend);
+  const selfBaseValues = selfStats.map(item => item.baseSpend);
+  const selfShareValues = selfStats.map(item => item.share);
   chart("annualSelfShareChart", "line", selfLabels, [{
     label: "自运营占比",
     data: selfShareValues,
@@ -1311,6 +1329,32 @@ function renderAnnualOverview() {
     plugins: {
       legend: { display: false },
       tooltip: { callbacks: { label(ctx) { return `自运营占比 ${pctFmt.format(ctx.parsed.y)}%｜自运营消耗 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w｜本地推非赠款消耗 ${fmtWan(ctx.dataset.baseValues?.[ctx.dataIndex] || 0)}w`; } } }
+    }
+  });
+
+  const portSeries = [
+    { name: "海南端口", color: palette.green, fill: "rgba(22,163,74,.12)" },
+    { name: "深圳端口", color: palette.blue, fill: "rgba(37,99,235,.12)" }
+  ].map(port => {
+    const stats = selfShareStats(source, months, row => normalizedPortRegion(row) === port.name);
+    return {
+      label: port.name,
+      data: stats.map(item => item.share),
+      rawValues: stats.map(item => item.selfSpend),
+      baseValues: stats.map(item => item.baseSpend),
+      borderColor: port.color,
+      backgroundColor: port.fill,
+      tension: .25
+    };
+  });
+  chart("annualSelfPortShareChart", "line", selfLabels, portSeries, {
+    scales: {
+      y: { beginAtZero: true, max: 100, grid: { color: palette.grid }, ticks: { color: palette.tick, callback: v => `${v}%` } },
+      x: { grid: { color: palette.grid }, ticks: { color: palette.tick } }
+    },
+    plugins: {
+      legend: { display: true },
+      tooltip: { callbacks: { label(ctx) { return `${ctx.dataset.label} ${pctFmt.format(ctx.parsed.y)}%｜自运营 ${fmtWan(ctx.dataset.rawValues?.[ctx.dataIndex] || 0)}w｜本地推非赠款 ${fmtWan(ctx.dataset.baseValues?.[ctx.dataIndex] || 0)}w`; } } }
     }
   });
 

@@ -415,6 +415,9 @@ button { cursor: pointer; font-weight: 700; }
 .annualIndustryGrid {
   grid-template-columns: minmax(0, 1fr);
 }
+.annualSelfShareGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .annualIndustryGrid {
   margin-top: 14px;
 }
@@ -423,6 +426,11 @@ button { cursor: pointer; font-weight: 700; }
 }
 .annualSelfShareCard canvas {
   height: 340px !important;
+}
+@media (max-width: 1200px) {
+  .annualSelfShareGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .annualLeaderLine {
   margin: 0 0 10px;
